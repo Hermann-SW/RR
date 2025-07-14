@@ -10,6 +10,9 @@
 
 ## EDGE_WEIGHT_TYPE distribution
 
+Sections from:  
+http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
+
  count| type | section
 -----:|------|---
 2| ATT | 2.5
