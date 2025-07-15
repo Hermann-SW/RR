@@ -5,6 +5,9 @@ load_test:
 greedy:
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm
 
+ezxdisp:
+	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
+
 cpplint: load_test.cpp
 	cpplint --filter=-legal/copyright,-runtime/references $<
 
