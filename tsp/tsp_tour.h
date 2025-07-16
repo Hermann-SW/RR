@@ -163,7 +163,6 @@ _stop
 
     for (int from = 0; from < N; ++from) {
       D[from] = new int[N];
-      rad_nxt[from].clear();
       for (int to = 0; to < N; ++to) {
         D[from][to] = dist(C[from], C[to]);
         rad_nxt[from].push_back(to);
