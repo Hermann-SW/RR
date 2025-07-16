@@ -165,7 +165,7 @@ class pcb442 {
   int draw_ran(config& C, int size,
                std::pair<urn, urn>& Us) {
     assert(Us.first.size() == 0);
-    assert(Us.second.size() == N);
+    assert(Us.second.size() == static_cast<unsigned>(N));
     last = "ran(" + i2s(size) + ")";
     for (; size > 0; --size) {
       int r = edraw(Us.second);
