@@ -10,6 +10,7 @@ class random_access_list {
   int N;
 
  public:
+  using value_type = val;
   typedef typename std::list<val>::iterator iterator;
   std::vector<iterator> A;
 

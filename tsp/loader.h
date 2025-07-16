@@ -12,8 +12,6 @@ template<typename T> struct is_pair_t                  : std::false_type {};
 template<typename T> struct is_pair_t<std::pair<T, T>> : std::true_type {};
 
 enum edge_weight_t { ATT, CEIL_2D, EUC_2D, EXPLICIT, GEO, UNDEF };
-extern edge_weight_t edge_weight_type;
-extern int opt_length;
 
 typedef std::pair<double, double> coord_t;
 typedef int city_t;
@@ -24,6 +22,7 @@ void load(std::string fname, std::vector<vt>& pd);
 
 edge_weight_t edge_weight_type = UNDEF;
 int opt_length = -1;
+
 
 inline int nint(double d) { return static_cast<int>(0.5 + d); }
 // http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
@@ -61,7 +60,7 @@ std::string value(std::ifstream& src, std::string pre) {
     rgt = rgt.substr(rgt.find_first_not_of(" \t"));
 
   if (rgt.find_last_not_of(" \t") != line.npos)
-    rgt = rgt.substr(0, rgt.find_last_not_of(" \t") + 1);
+    rgt.resize(rgt.find_last_not_of(" \t") + 1);
 
   return rgt;
 }
