@@ -1,8 +1,8 @@
 
-load_test:
+load_test: load_test.cpp loader.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic load_test.cpp -o load_test -lstdc++ -lm
 
-greedy:
+greedy: greedy.cpp loader.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm
 
 ezxdisp:

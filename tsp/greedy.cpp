@@ -53,15 +53,19 @@ typename urn::value_type edraw(urn& U) {
   return ret;
 }
 
-template <typename val, int N>
+template <typename val>
 class random_access_list {
   std::list<val> L;
+  int N;
 
  public:
   typedef typename std::list<val>::iterator iterator;
-  iterator A[N];
+  std::vector<iterator> A;
 
-  void init() {
+  void init(int _N) {
+    N = _N;
+    L = std::list<val>(N);
+    A = std::vector<iterator>(N);
     L.clear();
     for (int i = 0; i < N; ++i)  A[i] = L.end();
   }
@@ -85,19 +89,22 @@ class random_access_list {
 template <typename config, typename urn>
 class pcb442 {
  public:
-  static const int N = 442;  // config::N;
+  int N;
   const double siz, ran, seq, rad;
   std::string last;
 
-  pcb442(double _siz, double _ran, double _seq, double _rad) :
+  pcb442(std::string fname, double _siz, double _ran, double _seq, double _rad):
     siz(_siz), ran(_ran), seq(_seq), rad(_rad) {
     assert(siz >= 0.0 && siz <= 1.0);
     assert(ran+seq+rad == 1.0);
     assert(ran >= 0.0 && seq >= 0.0 && rad >= 0.0);
 
-    std::string fname = "../data/tsp/pcb442";
     load<coord_t>(fname + ".tsp", C);
     load<city_t>(fname + ".opt.tour", Opt);
+
+    assert(C.size() == Opt.size());
+
+    N = C.size();
 
     init_dist();
   }
@@ -114,7 +121,7 @@ class pcb442 {
 
 
   void init(config &C, std::pair<urn, urn> &Us) {
-    C.init();
+    C.init(N);
     Us.first.clear();
     Us.second.clear();
     for (int i = 0; i < N; ++i)  Us.first.push_back(i);
@@ -214,7 +221,7 @@ _stop
   }
 
 
-  int D[N][N];           // distance matrix
+  int **D;           // distance matrix
 
   struct {
     int* vi;
@@ -223,10 +230,15 @@ _stop
     }
   } Dless;
 
-  std::vector<int> rad_nxt[N];     // radial next
+  std::vector<int> *rad_nxt;     // radial next
 
   void init_dist() {
+    typedef int *pint;
+    D = new pint[N];
+    rad_nxt = new std::vector<int>[N];
+
     for (int from = 0; from < N; ++from) {
+      D[from] = new int[N];
       rad_nxt[from].clear();
       for (int to = 0; to < N; ++to) {
         D[from][to] = dist(C[from], C[to]);
@@ -398,10 +410,10 @@ void ezx_tours(pcb442<config, urn>& P, config& T, config& R, urn& U, config& N,
 #endif
 
 template <typename config, typename urn>
-void RR() {
+void RR(std::string fname) {
   std::pair<urn, urn> Us;
   config T;
-  pcb442<config, urn> P(0.3,  1.0/3, 1.0/3, 1.0/3);
+  pcb442<config, urn> P(fname, 0.3,  1.0/3, 1.0/3, 1.0/3);
 
 #ifdef ezxdisp
   ezx_t *e = ezx_init(3*(wid/Div+2*mar), hei/Div+2*mar,
@@ -477,6 +489,7 @@ void RR() {
   */
 
   config O;  // P.Opt is 1-based
+  O.init(P.N);
   for (int i = 0; i < P.N; ++i)  { int c = P.Opt[i] - 1; O.push_back(c); }
   errlog(-1, P.cost(O), "global minimum");
 
@@ -495,9 +508,10 @@ void RR() {
 
 
 int main(int argc, char *argv[]) {
+  assert(argc == 3);
   srandom(argc > 1 ? atoi(argv[1]) : time(0));
 
-  RR<random_access_list<int, 442>, std::vector<int>>();
+  RR<random_access_list<int>, std::vector<int>>(argv[2]);
 
   return 0;
 }
