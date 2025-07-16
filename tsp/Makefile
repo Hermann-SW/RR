@@ -2,7 +2,7 @@
 load_test: load_test.cpp loader.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic load_test.cpp -o load_test -lstdc++ -lm
 
-greedy: greedy.cpp loader.h
+greedy: greedy.cpp loader.h random_access_list.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm
 
 ezxdisp:
@@ -17,6 +17,9 @@ cpplint2: loader.h
 cpplint3: greedy.cpp
 	cpplint --filter=-legal/copyright,-runtime/references $<
 
+cpplint4: random_access_list.h
+	cpplint --filter=-legal/copyright,-runtime/references $<
+
 cppcheck: load_test.cpp
 	cppcheck --enable=all --suppress=missingInclude $<
 
@@ -25,6 +28,9 @@ cppcheck2: loader.h
 
 cppcheck3: greedy.cpp
 	cppcheck --enable=all --suppress=missingInclude $<
+
+cppcheck4: random_access_list.h
+	cppcheck --language=c++ --enable=all --suppress=missingInclude $<
 
 clean:
 	rm -f load_test greedy

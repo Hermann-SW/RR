@@ -33,6 +33,7 @@ struct timeval _tv0;
 #include <list>
 
 #include "./loader.h"
+#include "./random_access_list.h"
 
 std::string i2s(int x) { std::stringstream s2; s2 << x; return s2.str(); }
 
@@ -52,39 +53,6 @@ typename urn::value_type edraw(urn& U) {
   U.pop_back();
   return ret;
 }
-
-template <typename val>
-class random_access_list {
-  std::list<val> L;
-  int N;
-
- public:
-  typedef typename std::list<val>::iterator iterator;
-  std::vector<iterator> A;
-
-  void init(int _N) {
-    N = _N;
-    L = std::list<val>(N);
-    A = std::vector<iterator>(N);
-    L.clear();
-    for (int i = 0; i < N; ++i)  A[i] = L.end();
-  }
-
-  iterator& operator[](std::size_t i)  { return A[i]; }
-
-  void sort()  { L.sort(); }
-  void push_back(val& v )  { L.push_back(v); A[v] = --L.end(); }
-  iterator insert(iterator it, val& v )  { return A[v] = L.insert(it, v); }
-  iterator erase(iterator it)  { A[*it] = L.end(); return L.erase(it); }
-  iterator erase(int i)  {
-    iterator it = A[i]; A[i] = L.end(); return L.erase(it);
-  }
-  iterator begin()  { return L.begin(); }
-  iterator end()  { return L.end(); }
-  bool empty()  { return L.empty(); }
-  val& back()  { return L.back(); }
-  size_t size()  { return L.size(); }
-};
 
 template <typename config, typename urn>
 class pcb442 {
