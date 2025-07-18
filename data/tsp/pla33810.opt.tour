@@ -1,9 +1,9 @@
 NAME : pla33810.66048945.tour
-COMMENT : Length = 66048945
 COMMENT : Found by NRLKH (F Xue, CY Chan, WH Ip, Benny Cheung @ Hong Kong Polytechnic University)
 COMMENT : Date: 7 Jan 2008
 COMMENT : Running time: 1204960 s (13d 22h 42m 40s)
 COMMENT : PC: Intel(R) Core(TM)2 Duo CPU [E6750] 2.66GHz*2
+COMMENT : Length = 66048945
 TYPE : TOUR
 DIMENSION : 33810
 TOUR_SECTION
