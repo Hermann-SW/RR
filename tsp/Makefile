@@ -2,7 +2,7 @@
 load_test: load_test.cpp loader.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic load_test.cpp -o load_test -lstdc++ -lm
 
-greedy: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h
+greedy: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h RR_greedy.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm
 
 ezxdisp:
@@ -29,6 +29,9 @@ cpplint6: utils.h
 cpplint7: disp_utils.h
 	cpplint --filter=-legal/copyright,-runtime/references $<
 
+cpplint8: RR_greedy.h
+	cpplint --filter=-legal/copyright,-runtime/references $<
+
 cppcheck: load_test.cpp
 	cppcheck --enable=all --suppress=missingInclude $<
 
@@ -48,6 +51,9 @@ cppcheck6: utils.h
 	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
 
 cppcheck7: disp_utils.h
+	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+
+cppcheck8: RR_greedy.h
 	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
 
 clean:
