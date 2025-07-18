@@ -36,10 +36,18 @@ int ceil_2d(const coord_t& from, const coord_t& to) {
   double yd = from.second - to.second;
   return static_cast<int>(ceil(sqrt(xd*xd + yd*yd)));
 }
-[[maybe_unused]] int dist(const coord_t& from, const coord_t& to) {
+int att(const coord_t& from, const coord_t& to) {
+  double xd = from.first - to.first;
+  double yd = from.second - to.second;
+  double rij = sqrt((xd*xd + yd*yd) / 10.0);
+  double tij = nint(rij);
+  return static_cast<int>(tij < rij ? tij + 1 : tij);
+}
+int dist(const coord_t& from, const coord_t& to) {
   switch (edge_weight_type) {
     case CEIL_2D: return ceil_2d(from, to);
     case EUC_2D: return euc_2d(from, to);
+    case ATT: return att(from, to);
     default: assert(!"edge_weight_type not implemented");
   }
 }
