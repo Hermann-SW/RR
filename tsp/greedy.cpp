@@ -13,6 +13,8 @@
    https://github.com/Hermann-SW/ezxdisp?tab=readme-ov-file#support-for-c--use-in-ide
    (left mouse click continues to next accepted mutation and updates display; repeat)
 */
+#include <unistd.h>
+
 #include <sstream>
 #include <iostream>
 
@@ -22,6 +24,9 @@
 #ifdef ezxdisp
 #include "./disp_utils.h"
 #endif
+
+int nmutations = 100000;
+int seed = time(NULL);
 
 template <typename config, typename urn>
 void RR(std::string fname) {
@@ -51,7 +56,7 @@ void RR(std::string fname) {
   (void) ezx_pushbutton(e, NULL, NULL);
 #endif
 
-  for (int i = 1; i <= 100000; ++i) {
+  for (int i = 1; i <= nmutations; ++i) {
     config R = T;
     std::pair<urn, urn> UsR;
     for (typename config::iterator it = R.begin(); it != R.end(); ++it) {
@@ -89,7 +94,8 @@ void RR(std::string fname) {
       }
     }
   }
-  errlog(-1, P.cost(T), "local minimum found (after 100,000 greedy mutations)");
+  errlog(-1, P.cost(T),
+         "local minimum found (after "+i2s(nmutations)+" greedy mutations)");
   errlog(-1, (_sum+500)/1000, "ms (only recreate)");
   // print<config>(T);
 #if 0   // print_coords()
@@ -122,10 +128,30 @@ void RR(std::string fname) {
 
 
 int main(int argc, char *argv[]) {
-  assert(argc == 3);
-  srandom(argc > 1 ? atoi(argv[1]) : time(0));
+  int opt;
 
-  RR<random_access_list<int>, std::vector<int>>(argv[2]);
+  while ((opt = getopt(argc, argv, "m:")) != -1) {
+    switch (opt) {
+      case 'm':
+        nmutations = atoi(optarg);
+        break;
+      case 's':
+        seed = atoi(optarg);
+        break;
+      default:
+        std::cout << argv[0] << " [-m nmut] [-s seed] fname\n";
+        exit(EXIT_FAILURE);
+    }
+  }
 
-  return 0;
+  if (optind >= argc) {
+    std::cout << "Expected argument after options\n";
+    return EXIT_SUCCESS;
+  }
+
+  srandom(seed);
+
+  RR<random_access_list<int>, std::vector<int>>(argv[optind]);
+
+  return EXIT_SUCCESS;
 }
