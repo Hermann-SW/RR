@@ -1,0 +1,6 @@
+    ["ali535", 202310], # NOT OPT
+    ["brazil58", 25395], # EXPLICIT
+    ["brg180", 1950], # EXPLICIT
+    ["d657", 48912], # NOT OPT
+    ["dsj1000", 18659688], # NOT OPT
+    ["linhp318", 41345], # NOT OPT
