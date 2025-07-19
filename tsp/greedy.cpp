@@ -31,10 +31,13 @@ int seed = time(NULL);
 int main(int argc, char *argv[]) {
   int opt;
 
-  while ((opt = getopt(argc, argv, "m:s:")) != -1) {
+  while ((opt = getopt(argc, argv, "m:rs:")) != -1) {
     switch (opt) {
       case 'm':
         nmutations = atoi(optarg);
+        break;
+      case 'r':
+        rot270 = true;
         break;
       case 's':
         seed = atoi(optarg);

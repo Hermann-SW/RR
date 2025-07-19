@@ -15,6 +15,7 @@
 #endif
 
 int nmutations = 100000;
+bool rot270 = false;
 
 template <typename config, typename urn>
 void RR_greedy(std::string fname, int seed) {
@@ -26,6 +27,15 @@ void RR_greedy(std::string fname, int seed) {
   ezx_t *e = ezx_init(3*(wid/Div+2*marx), hei/Div+2*mary,
                       const_cast<char*>(reinterpret_cast<const char*>
                       ("TSP greedy Ruin and Recreate")));
+
+  if (rot270) {
+    for (int i = 0; i < static_cast<int>(P.C.size()); ++i) {
+      double f = P.C[i].first;
+      double s = P.C[i].second;
+      P.C[i].first = wid-s;
+      P.C[i].second = f;
+    }
+  }
 #endif
 
   P.RR_all(T, Us);
