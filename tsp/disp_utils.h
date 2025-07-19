@@ -81,7 +81,7 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
 
     s2 = std::stringstream();
     s2 << P.cost(R);
-    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+mary,
+    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
   }
