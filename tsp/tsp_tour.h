@@ -173,6 +173,22 @@ _stop
       Dless.vi = D[from];
       std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
     }
+
+    double xmin = C[0].first, ymin = C[0].second;
+    double xmax = C[0].first, ymax = C[0].second;
+    for (int i = 1; i < static_cast<int>(C.size()); ++i) {
+      if (C[i].first < xmin)  xmin = C[i].first;
+      if (C[i].second < ymin)  ymin = C[i].second;
+      if (C[i].first > xmax)  xmax = C[i].first;
+      if (C[i].second > ymax)  ymax = C[i].second;
+    }
+    double dx = xmax-xmin;
+    double dy = ymax-ymin;
+    double d = dx < dy ? dy : dx;
+    for (int i = 0; i < static_cast<int>(C.size()); ++i) {
+      C[i].first = (C[i].first - xmin)/d*600;
+      C[i].second = (C[i].second - ymin)/d*600;
+    }
   }
 
   std::vector<coord_t> C;

@@ -7,13 +7,17 @@
 #include <limits>
 #include <utility>
 
-const int mar = 8;
-const int wid = 3000;
-const int hei = 3800;
-const int Div = 5;
+// 200 .. 19800  800 .. 12200   ../data/tsp/pr76
+// 2918 .. 5294  5819 .. 8174   ../data/tsp/nrw1379
+// 0.0 .. 4348.2  0.0 .. 3263.4   ../data/tsp/d2103
+const int marx = 8;
+const int mary = 20;
+const int wid = 600;
+const int hei = 600;
+const int Div = 1;
 
 void mp(int x, int y, int s, std::pair<int, int>& a) {
-  a = std::pair<int, int>(mar+x/Div+s*(2*mar+wid/Div), mar+(hei-y)/Div);
+  a = std::pair<int, int>(marx+x/Div+s*(2*marx+wid/Div), mary+(hei-y)/Div);
 }
 
 void city(const std::pair<int, int>& c, ezx_t *e) {
@@ -34,8 +38,8 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
   bool initial = (ret == std::numeric_limits<int>::min());
   ezx_wipe(e);
 
-  ezx_line_2d(e, wid/Div+2*mar, hei/Div+2*mar, wid/Div+2*mar, 0, &ezx_black, 1);
-  ezx_line_2d(e, 2*(wid/Div+2*mar), hei/Div+2*mar, 2*(wid/Div+2*mar), 0,
+  ezx_line_2d(e, wid/Div+2*marx, hei/Div+2*mary, wid/Div+2*marx, 0, &ezx_black, 1);
+  ezx_line_2d(e, 2*(wid/Div+2*marx), hei/Div+2*mary, 2*(wid/Div+2*marx), 0,
               &ezx_black, 1);
 
   ezx_str_2d(e, 5, 10, const_cast<char *>(reinterpret_cast<const char*>
@@ -43,7 +47,7 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
                                   : "previous")), &ezx_black);
   std::stringstream s2;
   s2 << P.cost(T);
-  ezx_str_2d(e, 50, hei/Div+mar,
+  ezx_str_2d(e, 50, hei/Div+2*mary-2,
              const_cast<char *>(reinterpret_cast<const char*>
               (s2.str().c_str())), &ezx_black);
   if (ret != std::numeric_limits<int>::min()) {
@@ -55,29 +59,29 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
       s2 << (ret >= 0 ? "rad" : "seq");
     s2 << "(" << U.size() << ") ";
     s2 << P.cost(R);
-    ezx_str_2d(e, 50+wid/Div+2*mar, hei/Div+mar,
+    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
     s2 = std::stringstream();
     s2 << P.cost(N) << " (" << P.cost(N) - P.cost(T) << ")";
-    ezx_str_2d(e, 50+2*(wid/Div+2*mar), hei/Div+mar,
+    ezx_str_2d(e, 50+2*(wid/Div+2*marx), hei/Div+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
 
-    ezx_str_2d(e, 5+wid/Div+2*mar, 10,
+    ezx_str_2d(e, 5+wid/Div+2*marx, 10,
                const_cast<char*>(reinterpret_cast<const char*>("ruined")),
                &ezx_black);
-    ezx_str_2d(e, 5+2*(wid/Div+2*mar), 10,
+    ezx_str_2d(e, 5+2*(wid/Div+2*marx), 10,
                const_cast<char*>(reinterpret_cast<const char*>("recreated")),
                &ezx_black);
   } else if (mut != 0) {
-    ezx_str_2d(e, 5+wid/Div+2*mar, 10,
+    ezx_str_2d(e, 5+wid/Div+2*marx, 10,
                const_cast<char*>(reinterpret_cast<const char*>
                  ("global minimum")), &ezx_black);
 
     s2 = std::stringstream();
     s2 << P.cost(R);
-    ezx_str_2d(e, 50+wid/Div+2*mar, hei/Div+mar,
+    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+mary,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
   }
@@ -87,7 +91,7 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
     mp(P.C[ret].first, P.C[ret].second, 0, c);
     int r = P.D[ret][P.rad_nxt[ret][U.size()-1]];
     ezx_circle_2d(e, c.first, c.second, r/Div, &ezx_orange, 2);
-    ezx_circle_2d(e, c.first+2*(wid/Div+2*mar), c.second, r/Div,
+    ezx_circle_2d(e, c.first+2*(wid/Div+2*marx), c.second, r/Div,
                   &ezx_orange, 2);
   }
 
