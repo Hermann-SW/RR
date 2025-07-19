@@ -36,7 +36,7 @@ cppcheck: load_test.cpp
 	cppcheck --enable=all --suppress=missingInclude $<
 
 cppcheck2: loader.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck3: greedy.cpp
 	cppcheck --enable=all --suppress=missingInclude $<

@@ -43,11 +43,30 @@ int att(const coord_t& from, const coord_t& to) {
   double tij = nint(rij);
   return static_cast<int>(tij < rij ? tij + 1 : tij);
 }
+double deg2rad(double xy) {
+  double PI = 3.141592;
+  int deg = static_cast<int>(xy);  // chapter 2.4: nint(xy) — int() in tsplib95
+  double min = xy - deg;
+  return PI * (deg + 5.0 * min / 3.0 ) / 180.0;
+}
+int geo(const coord_t& from, const coord_t& to) {
+  double laf = deg2rad(from.first);
+  double lat = deg2rad(to.first);
+  double lof = deg2rad(from.second);
+  double lot = deg2rad(to.second);
+
+  double RRR = 6378.388;
+  double q1 = cos(lof - lot);
+  double q2 = cos(laf - lat);
+  double q3 = cos(laf + lat);
+  return static_cast<int>(RRR * acos(0.5*((1.0+q1)*q2 - (1.0-q1)*q3)) + 1.0);
+}
 int dist(const coord_t& from, const coord_t& to) {
   switch (edge_weight_type) {
     case CEIL_2D: return ceil_2d(from, to);
     case EUC_2D: return euc_2d(from, to);
     case ATT: return att(from, to);
+    case GEO: return geo(from, to);
     default: assert(!"edge_weight_type not implemented");
   }
 }
@@ -56,7 +75,7 @@ std::ifstream& operator >> (std::ifstream& in, coord_t &c1) {
   in >> c1.first >> c1.second; return in;
 }
 
-std::string value(std::ifstream& src, std::string pre) {
+std::string value(std::ifstream& src, const std::string& pre) {
   std::string line;
   do { getline(src, line); assert(!src.eof()); } while (!line.starts_with(pre));
 
