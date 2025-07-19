@@ -75,9 +75,11 @@ void RR_greedy(std::string fname, int seed) {
       ezx_tours(P, T, RC, UC, R, ret, i, e);
 
       if (confirm) {
-          while (0 == (b = ezx_pushbutton(e, NULL, NULL)))  { usleep(10000); }
+        while (0 == (b = ezx_pushbutton(e, NULL, NULL)))  { usleep(10000); }
 
-          confirm = (b != 3);
+        confirm = (b != 3);
+      } else {
+        confirm = (0 != (ezx_sensebutton(e, NULL, NULL) & EZX_BUTTON_LMASK));
       }
 #endif
 
