@@ -45,7 +45,7 @@ int att(const coord_t& from, const coord_t& to) {
 }
 double deg2rad(double xy) {
   double PI = 3.141592;
-  int deg = nint(xy);  // chapter 2.4: nint(xy) — in tsplib95 int()
+  int deg = static_cast<int>(xy);  // chapter 2.4: nint(xy) — in tsplib95 int()
   double min = xy - deg;
   return PI * (deg + 5.0 * min / 3.0 ) / 180.0;
 }
