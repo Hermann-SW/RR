@@ -36,6 +36,7 @@ void RR_greedy(std::string fname, int seed) {
 #ifdef ezxdisp
   config RC;
   urn UC;
+  bool confirm = true;
 
   std::cerr << "\n";
 
@@ -68,10 +69,16 @@ void RR_greedy(std::string fname, int seed) {
       errlog(i, P.cost(R), P.last);
 
 #ifdef ezxdisp
+      int b;
+
       std::cerr << "\n";
       ezx_tours(P, T, RC, UC, R, ret, i, e);
 
-      while (1 != ezx_pushbutton(e, NULL, NULL))  { usleep(10000); }
+      if (confirm) {
+          while (0 == (b = ezx_pushbutton(e, NULL, NULL)))  { usleep(10000); }
+
+          confirm = (b != 3);
+      }
 #endif
 
       T = R;
