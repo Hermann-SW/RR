@@ -31,3 +31,36 @@ user	0m26,086s
 sys	0m0,015s
 hermann@j4105:~/RR/tsp$ 
 ```
+
+## graphics display 
+A lot of options have been added, including saving and loading of tours:  
+```
+pi@raspberrypi5:~/RR/tsp $ ./greedy -h
+./greedy [-d] [-c] [-i file] [-h] [-m nmut] [-r] [-s seed] fname
+  -d: single display
+  -c: small city display
+  -i: file input
+  -h: this help
+  -m: #mutations
+  -r: rotate 270°
+  -s: seed
+pi@raspberrypi5:~/RR/tsp $ 
+```
+
+This creates the usual 3 tours display, "-r" rotates by 270°, "-c" for small cities, for 13,509 cities of US:  
+```
+pi@raspberrypi5:~/RR/tsp $ make ezxdisp
+g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
+pi@raspberrypi5:~/RR/tsp $ ./greedy -r -c ../data/tsp/usa13509
+19982859           global minimum
+0: 22884006           RR_all() [3401927us]
+2: 22875528           ran(169) (109481us)          
+3: 22807828           ran(1478) (841438us)          
+4: 22804898           seq(9020,375) (224667us)          
+```
+Looks like this:  
+![res/usa13509.3disp.png](res/usa13509.3disp.png)
+
+
+Same command with "-d" option for single display (click on image for 1:1 display):  
+![res/usa13509.1disp.png](res/usa13509.1disp.png)
