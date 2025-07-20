@@ -59,8 +59,7 @@ if (!single_display) {
   ezx_str_2d(e, 50, hei+2*mary-2,
              const_cast<char *>(reinterpret_cast<const char*>
               (s2.str().c_str())), &ezx_black);
-if (!single_display)
-{
+if (!single_display) {
   if (ret != std::numeric_limits<int>::min()) {
     s2 = std::stringstream();
     s2 << mut << ": ";
@@ -119,8 +118,7 @@ if (!single_display)
     p = c;
   });
 
-if (!single_display)
-{
+if (!single_display) {
   int hig = (ret < 0) ? -(1 + ret)
                       : (ret != std::numeric_limits<int>::max()) ? ret : -1;
   std::for_each(U.begin(), U.end(), [hig, &e, &P](int i) {
@@ -176,7 +174,7 @@ template <typename config, typename urn>
 void ezx_tours0(tsp_tour<config, urn>& P, ezx_t*& e) {
   ezx_wipe(e);
 
-  for(int i=0; i<P.N; ++i) {
+  for (int i=0; i < P.N; ++i) {
     std::pair<int, int> c;
     mp(P.C[i].first, P.C[i].second, 0, c);
     city(c, e);

@@ -11,9 +11,10 @@
 
 int nmutations = 100000;
 bool rot270 = false;
+std::string *src = NULL;
 
 template <typename config, typename urn>
-void RR_greedy(std::string fname, int seed) {
+void RR_greedy(const std::string& fname, int seed) {
   std::pair<urn, urn> Us;
   config T;
   tsp_tour<config, urn> P(fname, 0.3,  1.0/3, 1.0/3, 1.0/3);
@@ -40,7 +41,7 @@ void RR_greedy(std::string fname, int seed) {
   ezx_tours0(P, e);
 #endif
 
-  P.RR_all(T, Us);
+  P.RR_all(T, Us, src);
 
   errlog(0, P.cost(T), "RR_all() [" + i2s(_sum) + "us]");
   _sum = 0;
@@ -81,12 +82,12 @@ void RR_greedy(std::string fname, int seed) {
       errlog(i, P.cost(R), P.last);
 
 #ifdef ezxdisp
-      int b;
-
       std::cerr << "\n";
       ezx_tours(P, T, RC, UC, R, ret, i, e);
 
       if (confirm) {
+        int b;
+
         while (0 == (b = ezx_pushbutton(e, NULL, NULL)))  { usleep(10000); }
 
         confirm = (b != 3);
@@ -105,7 +106,7 @@ void RR_greedy(std::string fname, int seed) {
   }
   errlog(-1, P.cost(T),
          "local minimum found ("+i2s(nmutations)+" greedy mutations; seed="
-	 +i2s(seed)+")");
+         +i2s(seed)+")");
   errlog(-1, (_sum+500)/1000, "ms (only recreate)");
   // print<config>(T);
 #if 0   // print_coords()
@@ -122,6 +123,8 @@ void RR_greedy(std::string fname, int seed) {
   S.sort();
   urn V(S.begin(), S.end());
   for (int i = 0; i < P.N; ++i)  assert(V[i] == i);
+
+  save_tour(T, seed, nmutations, P.cost(T));
 
 #ifdef ezxdisp
   config dummy;

@@ -94,9 +94,19 @@ class tsp_tour {
     for (int i = 0; i < N; ++i)  Us.first.push_back(i);
   }
 
-  void RR_all(config &C, std::pair<urn, urn> &Us) {
+  void RR_all(config &C, std::pair<urn, urn> &Us, const std::string *src) {
     init(C, Us);
-    recreate(C, Us);
+    if (src == NULL) {
+      recreate(C, Us);
+    } else {
+      std::vector<city_t> vc;
+      load<city_t>(*src, vc);
+      std::for_each(vc.begin(), vc.end(), [&C](city_t i) {
+        city_t ct = i - 1;
+        C.push_back(ct);
+      });
+      Us.first.clear();
+    }
   }
 
   int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {

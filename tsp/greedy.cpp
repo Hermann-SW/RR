@@ -28,13 +28,26 @@
 
 int seed = time(NULL);
 
+void help(const char *argv0) {
+  std::cout << argv0
+            << " [-d] [-c] [-i file] [-h] [-m nmut] [-r] [-s seed] fname\n";
+  std::cout << "  -d: single display\n";
+  std::cout << "  -c: small city display\n";
+  std::cout << "  -i: file input\n";
+  std::cout << "  -h: this help\n";
+  std::cout << "  -m: #mutations\n";
+  std::cout << "  -r: rotate 270°\n";
+  std::cout << "  -s: seed\n";
+  exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[]) {
   int opt;
 
 #ifdef ezxdisp
-  const char *opts = "dcm:rs:";
+  const char *opts = "dci:hm:rs:";
 #else
-  const char *opts = "m:s:";
+  const char *opts = "i:hm:s:";
 #endif
 
   while ((opt = getopt(argc, argv, opts)) != -1) {
@@ -47,6 +60,12 @@ int main(int argc, char *argv[]) {
         single_display = true;
         break;
 #endif
+      case 'h':
+        help(argv[0]);
+        break;
+      case 'i':
+        src = new std::string(optarg);
+        break;
       case 'm':
         nmutations = atoi(optarg);
         break;
@@ -59,8 +78,7 @@ int main(int argc, char *argv[]) {
         seed = atoi(optarg);
         break;
       default:
-        std::cout << argv[0] << " [-m nmut] [-s seed] fname\n";
-        exit(EXIT_FAILURE);
+        help(argv[0]);
     }
   }
 

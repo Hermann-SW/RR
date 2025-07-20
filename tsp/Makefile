@@ -33,28 +33,28 @@ cpplint8: RR_greedy.h
 	cpplint --filter=-legal/copyright,-runtime/references $<
 
 cppcheck: load_test.cpp
-	cppcheck --enable=all --suppress=missingInclude $<
+	cppcheck --enable=all --suppress=missingIncludeSystem $<
 
 cppcheck2: loader.h
 	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck3: greedy.cpp
-	cppcheck --enable=all --suppress=missingInclude $<
+	cppcheck --enable=all --suppress=missingIncludeSystem $<
 
 cppcheck4: random_access_list.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem $<
 
 cppcheck5: tsp_tour.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck6: utils.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck7: disp_utils.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck8: RR_greedy.h
-	cppcheck --language=c++ --enable=all --suppress=missingInclude --suppress=unusedFunction $<
+	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 clean:
 	rm -f load_test greedy

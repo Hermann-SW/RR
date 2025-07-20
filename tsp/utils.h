@@ -3,6 +3,7 @@
 
 #include <sys/time.h>
 #include <string>
+#include <fstream>
 
 #include "./tsp_tour.h"
 
@@ -15,11 +16,25 @@ struct timeval _tv0;
 std::string i2s(int x) { std::stringstream s2; s2 << x; return s2.str(); }
 
 template <typename C>
-void print(C& L) {
-  std::for_each(L.begin(), L.end(), [](typename C::value_type i) {
-                                      std::cout << i << " ";
+void print(C& L, std::ostream& os = std::cout, const char sep = " ",
+           int d = 0) {
+  std::for_each(L.begin(), L.end(), [&os, sep, d](typename C::value_type i) {
+                                      os << (i + d) << sep;
                                     });
   std::cout << '\n';
+}
+
+template <typename C>
+void save_tour(C& L, int seed, int m, int c) {
+  std::string fname = "solution.sm_"+i2s(seed)+"_"+i2s(m)+".tour";
+  std::ofstream os(fname);
+  os << "NAME : " << fname << ".tour\n";
+  os << "COMMENT : Length " << i2s(c) << "\n";
+  os << "TYPE : TOUR\n";
+  os << "DIMENSION : " << i2s(L.size()) << "\n";
+  os << "TOUR_SECTION\n";
+  print(L, os, '\n', 1);
+  os << "-1\nEOF\n";
 }
 
 template <typename urn>
