@@ -14,14 +14,13 @@ const int marx = 8;
 const int mary = 20;
 int wid = 600;
 int hei = 600;
-const int Div = 1;
 double scale = 0.0;
 
 bool single_display = false;
 bool small_city = false;
 
 void mp(int x, int y, int s, std::pair<int, int>& a) {
-  a = std::pair<int, int>(marx+x/Div+s*(2*marx+wid/Div), mary+(hei-y)/Div);
+  a = std::pair<int, int>(marx+x+s*(2*marx+wid), mary+(hei-y));
 }
 
 void city(const std::pair<int, int>& c, ezx_t *e) {
@@ -44,8 +43,8 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
   ezx_wipe(e);
 
 if (!single_display) {
-  ezx_line_2d(e, wid/Div+2*marx, hei/Div+2*mary, wid/Div+2*marx, 0, &ezx_black, 1);
-  ezx_line_2d(e, 2*(wid/Div+2*marx), hei/Div+2*mary, 2*(wid/Div+2*marx), 0,
+  ezx_line_2d(e, wid+2*marx, hei+2*mary, wid+2*marx, 0, &ezx_black, 1);
+  ezx_line_2d(e, 2*(wid+2*marx), hei+2*mary, 2*(wid+2*marx), 0,
               &ezx_black, 1);
 }
 
@@ -57,7 +56,7 @@ if (!single_display) {
   if (single_display) {
     s2 << " (global minimum " << glob_min << ")";
   }
-  ezx_str_2d(e, 50, hei/Div+2*mary-2,
+  ezx_str_2d(e, 50, hei+2*mary-2,
              const_cast<char *>(reinterpret_cast<const char*>
               (s2.str().c_str())), &ezx_black);
 if (!single_display)
@@ -71,29 +70,29 @@ if (!single_display)
       s2 << (ret >= 0 ? "rad" : "seq");
     s2 << "(" << U.size() << ") ";
     s2 << P.cost(R);
-    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+2*mary-2,
+    ezx_str_2d(e, 50+wid+2*marx, hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
     s2 = std::stringstream();
     s2 << P.cost(N) << " (" << P.cost(N) - P.cost(T) << ")";
-    ezx_str_2d(e, 50+2*(wid/Div+2*marx), hei/Div+2*mary-2,
+    ezx_str_2d(e, 50+2*(wid+2*marx), hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
 
-    ezx_str_2d(e, 5+wid/Div+2*marx, 10,
+    ezx_str_2d(e, 5+wid+2*marx, 10,
                const_cast<char*>(reinterpret_cast<const char*>("ruined")),
                &ezx_black);
-    ezx_str_2d(e, 5+2*(wid/Div+2*marx), 10,
+    ezx_str_2d(e, 5+2*(wid+2*marx), 10,
                const_cast<char*>(reinterpret_cast<const char*>("recreated")),
                &ezx_black);
   } else if (mut != 0) {
-    ezx_str_2d(e, 5+wid/Div+2*marx, 10,
+    ezx_str_2d(e, 5+wid+2*marx, 10,
                const_cast<char*>(reinterpret_cast<const char*>
                  ("global minimum")), &ezx_black);
 
     s2 = std::stringstream();
     s2 << P.cost(R);
-    ezx_str_2d(e, 50+wid/Div+2*marx, hei/Div+2*mary-2,
+    ezx_str_2d(e, 50+wid+2*marx, hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
   }
@@ -105,7 +104,7 @@ if (!single_display)
     int r = P.D[ret][P.rad_nxt[ret][U.size()-1]];
     ezx_circle_2d(e, c.first, c.second, r/scale, &ezx_orange, 2);
     if (!single_display)
-      ezx_circle_2d(e, c.first+2*(wid/Div+2*marx), c.second, r/scale,
+      ezx_circle_2d(e, c.first+2*(wid+2*marx), c.second, r/scale,
                     &ezx_orange, 2);
   }
 

@@ -59,11 +59,16 @@ class tsp_tour {
     double dx = xmax-xmin;
     double dy = ymax-ymin;
     double d = dx < dy ? dy : dx;
-    if (single_display) {
-//      wid = hei = 900;
-      d = dx < 3*dy ? dy : 3*dx;
-    }
     scale = d/wid;
+    if (single_display) {
+      wid = 1800;
+      hei = 900;
+      if (dx < 2*dy) {
+        scale = dy/hei;
+      } else {
+        scale = dx/wid;
+      }
+    }
     for (int i = 0; i < static_cast<int>(C.size()); ++i) {
       C[i].first = (C[i].first - xmin)/scale;
       C[i].second = (C[i].second - ymin)/scale;

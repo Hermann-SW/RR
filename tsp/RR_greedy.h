@@ -19,9 +19,16 @@ void RR_greedy(std::string fname, int seed) {
   tsp_tour<config, urn> P(fname, 0.3,  1.0/3, 1.0/3, 1.0/3);
 
 #ifdef ezxdisp
-  ezx_t *e = ezx_init(3*(wid/Div+2*marx), hei/Div+2*mary,
-                      const_cast<char*>(reinterpret_cast<const char*>
-                      ("TSP greedy Ruin and Recreate")));
+  ezx_t *e;
+  if (single_display) {
+    e = ezx_init(wid+2*marx, hei+2*mary,
+                 const_cast<char*>(reinterpret_cast<const char*>
+                 ("TSP greedy Ruin and Recreate")));
+  } else {
+    e = ezx_init(3*(wid+2*marx), hei+2*mary,
+                 const_cast<char*>(reinterpret_cast<const char*>
+                 ("TSP greedy Ruin and Recreate")));
+  }
 #endif
 
   config O;  // P.Opt is 1-based
