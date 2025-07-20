@@ -47,6 +47,8 @@ hermann@7950x:~/RR/tsp$ sed "s/^M/\n/g" nohup.out
      132.077723000 seconds user
        0.490965000 seconds sys
 
-
 hermann@7950x:~/RR/tsp$ 
 ```
+
+A lot new options, including [graphics display](https://github.com/Hermann-SW/RR/tree/main/tsp#graphics-display) (here single display of usa13509.tsp):  
+![https://github.com/Hermann-SW/RR/blob/main/tsp/res/usa13509.1disp.png](https://github.com/Hermann-SW/RR/blob/main/tsp/res/usa13509.1disp.png)
