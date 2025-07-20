@@ -4,12 +4,7 @@
 #include <string>
 #include <utility>
 #include <limits>
-// #include <sstream>
-// #include <iostream>
 
-// #include "./loader.h"
-// #include "./random_access_list.h"
-// #include "./tsp_tour.h"
 #ifdef ezxdisp
 #include "./disp_utils.h"
 #endif
@@ -27,15 +22,15 @@ void RR_greedy(std::string fname, int seed) {
   ezx_t *e = ezx_init(3*(wid/Div+2*marx), hei/Div+2*mary,
                       const_cast<char*>(reinterpret_cast<const char*>
                       ("TSP greedy Ruin and Recreate")));
+#endif
 
-  if (rot270) {
-    for (int i = 0; i < static_cast<int>(P.C.size()); ++i) {
-      double f = P.C[i].first;
-      double s = P.C[i].second;
-      P.C[i].first = wid-s;
-      P.C[i].second = f;
-    }
-  }
+  config O;  // P.Opt is 1-based
+  O.init(P.N);
+  for (int i = 0; i < P.N; ++i)  { int c = P.Opt[i] - 1; O.push_back(c); }
+  errlog(-1, glob_min = P.cost(O), "global minimum");
+
+#ifdef ezxdisp
+  ezx_tours0(P, e);
 #endif
 
   P.RR_all(T, Us);
@@ -115,11 +110,6 @@ void RR_greedy(std::string fname, int seed) {
   });
   std::cout << "]\n";
 #endif
-
-  config O;  // P.Opt is 1-based
-  O.init(P.N);
-  for (int i = 0; i < P.N; ++i)  { int c = P.Opt[i] - 1; O.push_back(c); }
-  errlog(-1, P.cost(O), "global minimum");
 
   config S = T;
   S.sort();

@@ -9,6 +9,12 @@
 
 #include "./utils.h"
 
+extern double scale;
+extern bool single_display;
+extern bool rot270;
+extern int wid, hei;
+int glob_min = 0;
+
 template <typename config, typename urn>
 class tsp_tour {
  public:
@@ -31,6 +37,38 @@ class tsp_tour {
     N = C.size();
 
     init_dist();
+
+#ifdef ezxdisp
+    if (rot270) {
+      for (int i = 0; i < static_cast<int>(C.size()); ++i) {
+        double f = C[i].first;
+        double s = C[i].second;
+        C[i].first = wid-s;
+        C[i].second = f;
+      }
+    }
+
+    double xmin = C[0].first, ymin = C[0].second;
+    double xmax = C[0].first, ymax = C[0].second;
+    for (int i = 1; i < static_cast<int>(C.size()); ++i) {
+      if (C[i].first < xmin)  xmin = C[i].first;
+      if (C[i].second < ymin)  ymin = C[i].second;
+      if (C[i].first > xmax)  xmax = C[i].first;
+      if (C[i].second > ymax)  ymax = C[i].second;
+    }
+    double dx = xmax-xmin;
+    double dy = ymax-ymin;
+    double d = dx < dy ? dy : dx;
+    if (single_display) {
+//      wid = hei = 900;
+      d = dx < 3*dy ? dy : 3*dx;
+    }
+    scale = d/wid;
+    for (int i = 0; i < static_cast<int>(C.size()); ++i) {
+      C[i].first = (C[i].first - xmin)/scale;
+      C[i].second = (C[i].second - ymin)/scale;
+    }
+#endif
   }
 
 
@@ -172,22 +210,6 @@ _stop
     for (int from = 0; from < N; ++from) {
       Dless.vi = D[from];
       std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
-    }
-
-    double xmin = C[0].first, ymin = C[0].second;
-    double xmax = C[0].first, ymax = C[0].second;
-    for (int i = 1; i < static_cast<int>(C.size()); ++i) {
-      if (C[i].first < xmin)  xmin = C[i].first;
-      if (C[i].second < ymin)  ymin = C[i].second;
-      if (C[i].first > xmax)  xmax = C[i].first;
-      if (C[i].second > ymax)  ymax = C[i].second;
-    }
-    double dx = xmax-xmin;
-    double dy = ymax-ymin;
-    double d = dx < dy ? dy : dx;
-    for (int i = 0; i < static_cast<int>(C.size()); ++i) {
-      C[i].first = (C[i].first - xmin)/d*600;
-      C[i].second = (C[i].second - ymin)/d*600;
     }
   }
 

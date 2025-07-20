@@ -31,14 +31,30 @@ int seed = time(NULL);
 int main(int argc, char *argv[]) {
   int opt;
 
-  while ((opt = getopt(argc, argv, "m:rs:")) != -1) {
+#ifdef ezxdisp
+  const char *opts = "dcm:rs:";
+#else
+  const char *opts = "m:s:";
+#endif
+
+  while ((opt = getopt(argc, argv, opts)) != -1) {
     switch (opt) {
+#ifdef ezxdisp
+      case 'c':
+        small_city = true;
+        break;
+      case 'd':
+        single_display = true;
+        break;
+#endif
       case 'm':
         nmutations = atoi(optarg);
         break;
+#ifdef ezxdisp
       case 'r':
         rot270 = true;
         break;
+#endif
       case 's':
         seed = atoi(optarg);
         break;

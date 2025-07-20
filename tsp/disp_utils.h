@@ -12,16 +12,21 @@
 // 0.0 .. 4348.2  0.0 .. 3263.4   ../data/tsp/d2103
 const int marx = 8;
 const int mary = 20;
-const int wid = 600;
-const int hei = 600;
+int wid = 600;
+int hei = 600;
 const int Div = 1;
+double scale = 0.0;
+
+bool single_display = false;
+bool small_city = false;
 
 void mp(int x, int y, int s, std::pair<int, int>& a) {
   a = std::pair<int, int>(marx+x/Div+s*(2*marx+wid/Div), mary+(hei-y)/Div);
 }
 
 void city(const std::pair<int, int>& c, ezx_t *e) {
-  ezx_fillrect_2d(e, c.first-2, c.second-2, c.first+2, c.second+2, &ezx_black);
+  int d = small_city ? 1 : 2;
+  ezx_fillrect_2d(e, c.first-d, c.second-d, c.first+d, c.second+d, &ezx_black);
 }
 
 void city2(const std::pair<int, int>& c, ezx_t *e) {
@@ -38,18 +43,25 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
   bool initial = (ret == std::numeric_limits<int>::min());
   ezx_wipe(e);
 
+if (!single_display) {
   ezx_line_2d(e, wid/Div+2*marx, hei/Div+2*mary, wid/Div+2*marx, 0, &ezx_black, 1);
   ezx_line_2d(e, 2*(wid/Div+2*marx), hei/Div+2*mary, 2*(wid/Div+2*marx), 0,
               &ezx_black, 1);
+}
 
   ezx_str_2d(e, 5, 10, const_cast<char *>(reinterpret_cast<const char*>
                          (initial ? (mut == 0 ? "RR_all" : "minimum found")
                                   : "previous")), &ezx_black);
   std::stringstream s2;
   s2 << P.cost(T);
+  if (single_display) {
+    s2 << " (global minimum " << glob_min << ")";
+  }
   ezx_str_2d(e, 50, hei/Div+2*mary-2,
              const_cast<char *>(reinterpret_cast<const char*>
               (s2.str().c_str())), &ezx_black);
+if (!single_display)
+{
   if (ret != std::numeric_limits<int>::min()) {
     s2 = std::stringstream();
     s2 << mut << ": ";
@@ -85,14 +97,16 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
   }
+}
 
   if (ret != std::numeric_limits<int>::max() && ret >= 0) {
     std::pair<int, int> c;
     mp(P.C[ret].first, P.C[ret].second, 0, c);
     int r = P.D[ret][P.rad_nxt[ret][U.size()-1]];
-    ezx_circle_2d(e, c.first, c.second, r/Div, &ezx_orange, 2);
-    ezx_circle_2d(e, c.first+2*(wid/Div+2*marx), c.second, r/Div,
-                  &ezx_orange, 2);
+    ezx_circle_2d(e, c.first, c.second, r/scale, &ezx_orange, 2);
+    if (!single_display)
+      ezx_circle_2d(e, c.first+2*(wid/Div+2*marx), c.second, r/scale,
+                    &ezx_orange, 2);
   }
 
   int prev = T.back();
@@ -106,6 +120,8 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
     p = c;
   });
 
+if (!single_display)
+{
   int hig = (ret < 0) ? -(1 + ret)
                       : (ret != std::numeric_limits<int>::max()) ? ret : -1;
   std::for_each(U.begin(), U.end(), [hig, &e, &P](int i) {
@@ -134,23 +150,39 @@ void ezx_tours(tsp_tour<config, urn>& P, config& T, config& R, urn& U,
     p = c;
   });
 
-  std::for_each(T.begin(), T.end(), [ret, &e, &P](int i) {
-    std::pair<int, int> c;
-    mp(P.C[i].first, P.C[i].second, 0, c);
-    city(c, e);
-    if (ret != std::numeric_limits<int>::min()) {
-      mp(P.C[i].first, P.C[i].second, 2, c);
-      city(c, e);
-    }
-  });
-
   std::for_each(R.begin(), R.end(), [&e, &P](int i) {
     std::pair<int, int> c;
     mp(P.C[i].first, P.C[i].second, 1, c);
     city(c, e);
   });
+}
+
+  std::for_each(T.begin(), T.end(), [ret, &e, &P](int i) {
+    std::pair<int, int> c;
+    mp(P.C[i].first, P.C[i].second, 0, c);
+    city(c, e);
+    if (ret != std::numeric_limits<int>::min()) {
+      if (!single_display)
+        mp(P.C[i].first, P.C[i].second, 2, c);
+      city(c, e);
+    }
+  });
 
   // ezx_window_name(e, "57123 -> 53207 -> 51219");
+  ezx_redraw(e);
+  usleep(10000);
+}
+
+template <typename config, typename urn>
+void ezx_tours0(tsp_tour<config, urn>& P, ezx_t*& e) {
+  ezx_wipe(e);
+
+  for(int i=0; i<P.N; ++i) {
+    std::pair<int, int> c;
+    mp(P.C[i].first, P.C[i].second, 0, c);
+    city(c, e);
+  }
+
   ezx_redraw(e);
   usleep(10000);
 }
