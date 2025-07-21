@@ -50,8 +50,11 @@ hermann@7950x:~/RR/tsp$ sed "s/^M/\n/g" nohup.out
 hermann@7950x:~/RR/tsp$ 
 ```
 
+## usa13509.tsp
+
 A lot new options, including [graphics display](https://github.com/Hermann-SW/RR/tree/main/tsp#graphics-display) (here single display of usa13509.tsp):  
 ![https://github.com/Hermann-SW/RR/blob/main/tsp/res/usa13509.1disp.png](https://github.com/Hermann-SW/RR/blob/main/tsp/res/usa13509.1disp.png)
+
 ## Mona Lisa TSP Challenge
 
 Nice, first time view of mona-lisa100K.tsp problem with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible (ceil(100,000/3,840)=27 steps for a core to compute best fit cost of new city at "its" cities, then 12 steps to compute overall minimum of the 3,840 minimal costs). Not my fastest machine, but the only that could deal with the currently 58.1g resident RAM for greedy process (already reduced from 74.9g by storing the entries in distance matrix as ```int16_t``` instead of 32bit ```int``` — maximal mona-lisa100K.tsp distance is less than 30,000).
