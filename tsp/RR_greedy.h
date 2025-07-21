@@ -34,7 +34,10 @@ void RR_greedy(const std::string& fname, int seed) {
 
   config O;  // P.Opt is 1-based
   O.init(P.N);
-  for (int i = 0; i < P.N; ++i)  { int c = P.Opt[i] - 1; O.push_back(c); }
+  for (int i = 0; i < P.N; ++i) {
+    typename config::value_type c = P.Opt[i] - 1;
+    O.push_back(c);
+  }
   errlog(-1, glob_min = P.cost(O), "global minimum");
 
 #ifdef ezxdisp

@@ -14,7 +14,6 @@ template<typename T> struct is_pair_t<std::pair<T, T>> : std::true_type {};
 enum edge_weight_t { ATT, CEIL_2D, EUC_2D, EXPLICIT, GEO, UNDEF };
 
 typedef std::pair<double, double> coord_t;
-typedef int city_t;
 
 template <typename vt>
 void load(std::string fname, std::vector<vt>& pd);

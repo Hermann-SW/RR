@@ -22,6 +22,8 @@ class tsp_tour {
   const double siz, ran, seq, rad;
   std::string last;
 
+  typedef typename config::value_type city_t;
+
   tsp_tour(const std::string& fname, double _siz,
                                      double _ran, double _seq, double _rad):
     siz(_siz), ran(_ran), seq(_seq), rad(_rad) {
@@ -177,7 +179,7 @@ class tsp_tour {
 
   void recreate(config& C, std::pair<urn, urn>& Us) {
     while (!Us.first.empty()) {
-      int c = edraw(Us.first);
+      city_t c = edraw(Us.first);
       typename config::iterator itend = C.end(); assert(C[c] == itend);
 _start
       int mincost = std::numeric_limits<int>::max();

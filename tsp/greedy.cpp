@@ -89,7 +89,8 @@ int main(int argc, char *argv[]) {
 
   srandom(seed);
 
-  RR_greedy<random_access_list<int>, std::vector<int>>(argv[optind], seed);
+  RR_greedy<random_access_list<int16_t>,
+            std::vector<int16_t>>(argv[optind], seed);
 
   return EXIT_SUCCESS;
 }

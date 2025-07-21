@@ -2,6 +2,8 @@
 
 #include "./loader.h"
 
+typedef int16_t city_t;
+
 std::vector<coord_t> Coords;
 std::vector<city_t> opt;
 
