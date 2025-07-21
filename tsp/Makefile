@@ -5,8 +5,14 @@ load_test: load_test.cpp loader.h
 greedy: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h RR_greedy.h
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm
 
+memopt: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h RR_greedy.h
+	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -DMEMOPT
+
 ezxdisp:
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
+
+memoptezx:
+	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11 -DMEMOPT
 
 cpplint: load_test.cpp
 	cpplint --filter=-legal/copyright,-runtime/references $<

@@ -199,11 +199,18 @@ _stop
     }
   }
 
-
+#ifdef MEMOPT
+  int16_t **D;           // distance matrix
+#else
   int **D;           // distance matrix
+#endif
 
   struct {
+#ifdef MEMOPT
+    int16_t* vi;
+#else
     int* vi;
+#endif
     bool  operator()(int a, int b)  {
       return vi[a] < vi[b];
     }
@@ -212,12 +219,20 @@ _stop
   std::vector<int> *rad_nxt;     // radial next
 
   void init_dist() {
+#ifdef MEMOPT
+    typedef int16_t *pint;
+#else
     typedef int *pint;
+#endif
     D = new pint[N];
     rad_nxt = new std::vector<int>[N];
 
     for (int from = 0; from < N; ++from) {
+#ifdef MEMOPT
+      D[from] = new int16_t[N];
+#else
       D[from] = new int[N];
+#endif
       for (int to = 0; to < N; ++to) {
         D[from][to] = dist(C[from], C[to]);
         rad_nxt[from].push_back(to);
