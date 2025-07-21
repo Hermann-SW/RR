@@ -57,7 +57,7 @@ A lot new options, including [graphics display](https://github.com/Hermann-SW/RR
 Nice, first time view of mona-lisa100K.tsp problem with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible (ceil(100,000/3,840)=27 steps for a core to compute best fit cost of new city at "its" cities, then 12 steps to compute overall minimum of the 3,840 minimal costs). Not my fastest machine, but the only that could deal with the currently 58.1g resident RAM for greedy process (already reduced from 74.9g by storing the entries in distance matrix as ```int16_t``` instead of 32bit ```int``` — maximal mona-lisa100K.tsp distance is less than 30,000).
 ```
 hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
-991784778           global minimum
+5757191             best known tour, lower bound 5757084
 0: 6184100           RR_all() [300858747us]
 1: 6184089           ran(1) (8478us)          
 2: 6180983           ran(1249) (7177095us)          
