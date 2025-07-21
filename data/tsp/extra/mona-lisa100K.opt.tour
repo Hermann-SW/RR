@@ -1,7 +1,7 @@
-NAME : burma14.tour
-COMMENT : Optimum tour for burma14.tsp (Length 3323)
+NAME : mona-lisa100K.opt.tour
+COMMENT : "Optimum tour" for mona-lisa100K.tsp (Length 999999999)
 TYPE : TOUR
-DIMENSION : 14051
+DIMENSION : 100000
 TOUR_SECTION  
 1
 2
