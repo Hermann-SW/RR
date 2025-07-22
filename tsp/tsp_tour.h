@@ -9,10 +9,14 @@
 
 #include "./utils.h"
 
+#ifdef ezxdisp
 extern double scale;
 extern bool single_display;
 extern bool rot270;
 extern int wid, hei;
+extern int c_radial;
+extern int r_radial;
+#endif
 int glob_min = 0;
 
 template <typename config, typename urn>
@@ -88,6 +92,22 @@ class tsp_tour {
     return cost;
   }
 
+  int dist_sum(city_t c) {
+    int sum = 0;
+    for (int j = 0; j < N ; ++j) {
+      sum += D[c][j];
+    }
+    return sum;
+  }
+
+  city_t ext_sum(int extsum, int (*comp)(int, int)) {
+    int extc = -1;
+    for (int i = 0; i < N; ++i) {
+      int nsum = dist_sum(i);
+      if (comp(nsum, extsum) < 0) { extsum = nsum; extc = i; }
+    }
+    return extc;
+  }
 
   void init(config &C, std::pair<urn, urn> &Us) {
     C.init(N);
@@ -99,6 +119,27 @@ class tsp_tour {
   void RR_all(config &C, std::pair<urn, urn> &Us, const std::string *src) {
     init(C, Us);
     if (src == NULL) {
+      recreate(C, Us);
+    } else if (src->starts_with("radial_")) {
+      int extc = -1;
+      if (src->starts_with("radial_ran")) {
+        extc = random() % N;
+      } else if (src->starts_with("radial_min")) {
+        extc = ext_sum(std::numeric_limits<int>::max(),
+                       [](int a, int b){return a-b;});
+      } else if (src->starts_with("radial_max")) {
+        extc = ext_sum(std::numeric_limits<int>::min(),
+                       [](int a, int b){return b-a;});
+      }
+      assert(extc != -1);
+#ifdef ezxdisp
+      c_radial = extc;
+      r_radial = dist_sum(extc) / N;
+#endif
+      Us.first.clear();
+      for (int j = 0; j < N ; ++j) {
+        Us.first.push_back(rad_nxt[extc][j]);
+      }
       recreate(C, Us);
     } else {
       std::vector<city_t> vc;

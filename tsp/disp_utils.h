@@ -15,6 +15,8 @@ const int mary = 20;
 int wid = 600;
 int hei = 600;
 double scale = 0.0;
+int c_radial = -1;
+int r_radial = -1;
 
 bool single_display = false;
 bool small_city = false;
@@ -105,6 +107,10 @@ if (!single_display) {
     if (!single_display)
       ezx_circle_2d(e, c.first+2*(wid+2*marx), c.second, r/scale,
                     &ezx_orange, 2);
+  } else if (ret < 0 && c_radial >= 0) {
+    std::pair<int, int> c;
+    mp(P.C[c_radial].first, P.C[c_radial].second, 0, c);
+    ezx_circle_2d(e, c.first, c.second, r_radial/scale, &ezx_orange, 2);
   }
 
   int prev = T.back();
@@ -157,7 +163,7 @@ if (!single_display) {
   std::for_each(T.begin(), T.end(), [ret, &e, &P](int i) {
     std::pair<int, int> c;
     mp(P.C[i].first, P.C[i].second, 0, c);
-    city(c, e);
+    (i == c_radial ? city2a : city)(c, e);
     if (ret != std::numeric_limits<int>::min()) {
       if (!single_display)
         mp(P.C[i].first, P.C[i].second, 2, c);
