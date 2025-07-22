@@ -58,7 +58,8 @@ void RR_greedy(const std::string& fname, int seed) {
 
   ezx_tours(P, T, RC, Us.first, RC, std::numeric_limits<int>::min(), 0, e);
 
-  (void) ezx_pushbutton(e, NULL, NULL);
+  if (nmutations > 0)
+     (void) ezx_pushbutton(e, NULL, NULL);
 #endif
 
   for (int i = 1; i <= nmutations; ++i) {
