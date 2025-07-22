@@ -30,10 +30,12 @@ int seed = time(NULL);
 
 void help(const char *argv0) {
   std::cout << argv0
-            << " [-d] [-c] [-i file] [-h] [-m nmut] [-r] [-s seed] fname\n";
+            << " [-d] [-c] [-i tour_or_mode] [-h] [-m nmut] [-r]"\
+               " [-s seed] fname\n";
   std::cout << "  -d: single display\n";
   std::cout << "  -c: small city display\n";
-  std::cout << "  -i: file input\n";
+  std::cout << "  -i: file.tour or "\
+               "radial_min/radial_max/radial_ran for RR_all()\n";
   std::cout << "  -h: this help\n";
   std::cout << "  -m: #mutations\n";
   std::cout << "  -r: rotate 270°\n";

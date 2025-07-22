@@ -92,18 +92,18 @@ class tsp_tour {
     return cost;
   }
 
-  int dist_sum(city_t c) {
-    int sum = 0;
+  long int dist_sum(city_t c) {
+    long int sum = 0;  // prevent overflow for eg. usa13509
     for (int j = 0; j < N ; ++j) {
       sum += D[c][j];
     }
     return sum;
   }
 
-  city_t ext_sum(int extsum, int (*comp)(int, int)) {
+  city_t ext_sum(int extsum, long (*comp)(long, long)) {
     int extc = -1;
     for (int i = 0; i < N; ++i) {
-      int nsum = dist_sum(i);
+      long int nsum = dist_sum(i);
       if (comp(nsum, extsum) < 0) { extsum = nsum; extc = i; }
     }
     return extc;
@@ -126,10 +126,10 @@ class tsp_tour {
         extc = random() % N;
       } else if (src->starts_with("radial_min")) {
         extc = ext_sum(std::numeric_limits<int>::max(),
-                       [](int a, int b){return a-b;});
+                       [](long a, long b){return a-b;});
       } else if (src->starts_with("radial_max")) {
         extc = ext_sum(std::numeric_limits<int>::min(),
-                       [](int a, int b){return b-a;});
+                       [](long a, long b){return b-a;});
       }
       assert(extc != -1);
 #ifdef ezxdisp

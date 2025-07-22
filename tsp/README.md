@@ -36,10 +36,10 @@ hermann@j4105:~/RR/tsp$
 A lot of options have been added, including saving and loading of tours:  
 ```
 pi@raspberrypi5:~/RR/tsp $ ./greedy -h
-./greedy [-d] [-c] [-i file] [-h] [-m nmut] [-r] [-s seed] fname
+./greedy [-d] [-c] [-i tour_or_mode] [-h] [-m nmut] [-r] [-s seed] fname
   -d: single display
   -c: small city display
-  -i: file input
+  -i: file.tour or radial_min/radial_max/radial_ran for RR_all()
   -h: this help
   -m: #mutations
   -r: rotate 270°
