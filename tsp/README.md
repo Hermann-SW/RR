@@ -64,3 +64,10 @@ Looks like this:
 
 Same command with "-d" option for single display (click on image for 1:1 display):  
 ![res/usa13509.1disp.png](res/usa13509.1disp.png)
+
+
+Alternatively to random ```RR_all()```, the "-i" option allows to specify one of three "radial_..." modes for initial configuration creation. Below highlights the city with minimal sum of distances to all other cities. The circle radius is avarage distance of all cities to the chosen city. ```RR_all()``` inserts the cities not randomly in this mode, but in increasing distance from the determined city. Each city gets insered with "best insert" as done with random ```RR_all()```:  
+```
+pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_min ../data/tsp/usa13509
+```
+![res/usa13509.1disp.radial_min.png](res/usa13509.1disp.radial_min.png)
