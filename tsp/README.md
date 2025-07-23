@@ -71,3 +71,11 @@ Alternatively to random ```RR_all()```, the "-i" option allows to specify one of
 pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_min ../data/tsp/usa13509
 ```
 ![res/usa13509.1disp.radial_min.png](res/usa13509.1disp.radial_min.png)
+
+Just for comparison, here the picture for ```radial_max```:  
+```
+pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_max ../data/tsp/usa13509
+```
+![res/usa13509.1disp.radial_min.png](res/usa13509.1disp.radial_max.png)
+
+Both initial tour lengths are roughly the same, and the same of a typical random ```RR_all()```.
