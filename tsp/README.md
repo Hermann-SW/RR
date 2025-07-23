@@ -78,4 +78,4 @@ pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_max ../data/tsp/usa1
 ```
 ![res/usa13509.1disp.radial_min.png](res/usa13509.1disp.radial_max.png)
 
-Both initial tour lengths are roughly the same, and the same of a typical random ```RR_all()```.
+Both initial tour lengths are roughly the same, and the same as a typical random ```RR_all()``` tour length.
