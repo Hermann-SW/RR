@@ -28,9 +28,20 @@ class tsp_tour {
 
   typedef typename config::value_type city_t;
 
+  struct {
+#ifdef MEMOPT
+    int16_t* vi;
+#else
+    int* vi;
+#endif
+    bool  operator()(int a, int b)  {
+      return vi[a] < vi[b];
+    }
+  } Dless;
+
   tsp_tour(const std::string& fname, double _siz,
                                      double _ran, double _seq, double _rad):
-    siz(_siz), ran(_ran), seq(_seq), rad(_rad) {
+  siz(_siz), ran(_ran), seq(_seq), rad(_rad), Dless(), D(NULL), rad_nxt(NULL) {
     assert(siz >= 0.0 && siz <= 1.0);
     assert(ran+seq+rad == 1.0);
     assert(ran >= 0.0 && seq >= 0.0 && rad >= 0.0);
@@ -41,8 +52,6 @@ class tsp_tour {
     assert(C.size() == Opt.size());
 
     N = C.size();
-
-    init_dist();
 
 #ifdef ezxdisp
     if (rot270) {
@@ -75,6 +84,7 @@ class tsp_tour {
         scale = dx/wid;
       }
     }
+    CC = C;
     for (int i = 0; i < static_cast<int>(C.size()); ++i) {
       C[i].first = (C[i].first - xmin)/scale;
       C[i].second = (C[i].second - ymin)/scale;
@@ -92,18 +102,18 @@ class tsp_tour {
     return cost;
   }
 
-  long int dist_sum(city_t c) {
-    long int sum = 0;  // prevent overflow for eg. usa13509
+  int64_t dist_sum(city_t c) {
+    int64_t sum = 0;  // prevent overflow for eg. usa13509
     for (int j = 0; j < N ; ++j) {
       sum += D[c][j];
     }
     return sum;
   }
 
-  city_t ext_sum(int extsum, long (*comp)(long, long)) {
+  city_t ext_sum(int extsum, int64_t (*comp)(int64_t, int64_t)) {
     int extc = -1;
     for (int i = 0; i < N; ++i) {
-      long int nsum = dist_sum(i);
+      int64_t nsum = dist_sum(i);
       if (comp(nsum, extsum) < 0) { extsum = nsum; extc = i; }
     }
     return extc;
@@ -126,10 +136,10 @@ class tsp_tour {
         extc = random() % N;
       } else if (src->starts_with("radial_min")) {
         extc = ext_sum(std::numeric_limits<int>::max(),
-                       [](long a, long b){return a-b;});
+                       [](int64_t a, int64_t b){return a-b;});
       } else if (src->starts_with("radial_max")) {
         extc = ext_sum(std::numeric_limits<int>::min(),
-                       [](long a, long b){return b-a;});
+                       [](int64_t a, int64_t b){return b-a;});
       }
       assert(extc != -1);
 #ifdef ezxdisp
@@ -246,17 +256,6 @@ _stop
   int **D;           // distance matrix
 #endif
 
-  struct {
-#ifdef MEMOPT
-    int16_t* vi;
-#else
-    int* vi;
-#endif
-    bool  operator()(int a, int b)  {
-      return vi[a] < vi[b];
-    }
-  } Dless;
-
   std::vector<int> *rad_nxt;     // radial next
 
   void init_dist() {
@@ -275,7 +274,7 @@ _stop
       D[from] = new int[N];
 #endif
       for (int to = 0; to < N; ++to) {
-        D[from][to] = dist(C[from], C[to]);
+        D[from][to] = dist(CC[from], CC[to]);
         rad_nxt[from].push_back(to);
       }
     }
@@ -287,6 +286,7 @@ _stop
   }
 
   std::vector<coord_t> C;
+  std::vector<coord_t> CC;
   std::vector<city_t> Opt;
 };
 #endif  // TSP_TSP_TOUR_H_

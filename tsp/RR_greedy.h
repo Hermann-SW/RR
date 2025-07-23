@@ -30,7 +30,12 @@ void RR_greedy(const std::string& fname, int seed) {
                  const_cast<char*>(reinterpret_cast<const char*>
                  ("TSP greedy Ruin and Recreate")));
   }
+
+  ezx_tours0(P, e);
+  if (P.N > 50000)
+     (void) ezx_pushbutton(e, NULL, NULL);
 #endif
+  P.init_dist();
 
   config O;  // P.Opt is 1-based
   O.init(P.N);
@@ -39,10 +44,6 @@ void RR_greedy(const std::string& fname, int seed) {
     O.push_back(c);
   }
   errlog(-1, glob_min = P.cost(O), "global minimum");
-
-#ifdef ezxdisp
-  ezx_tours0(P, e);
-#endif
 
   P.RR_all(T, Us, src);
 
