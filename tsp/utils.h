@@ -16,7 +16,7 @@ struct timeval _tv0;
 std::string i2s(int x) { std::stringstream s2; s2 << x; return s2.str(); }
 
 template <typename C>
-void print(C& L, std::ostream& os = std::cout, const char sep = " ",
+void print(C& L, std::ostream& os = std::cout, const char sep = ' ',
            int d = 0) {
   std::for_each(L.begin(), L.end(), [&os, sep, d](typename C::value_type i) {
                                       os << (i + d) << sep;

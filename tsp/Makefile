@@ -11,6 +11,9 @@ memopt: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h RR_greedy.h
 ezxdisp:
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
 
+cezxdisp:
+	clang++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
+
 memoptezx:
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11 -DMEMOPT
 
