@@ -83,8 +83,8 @@ void RR_greedy(const std::string& fname, int seed) {
     P.recreate(R, UsR);
 
     if (P.cost(R) < P.cost(T)) {
-      P.last += " (" + i2s(_sum - oldsum) + "us)          ";
-      errlog(i, P.cost(R), P.last);
+      P.msg += " (" + i2s(_sum - oldsum) + "us)          ";
+      errlog(i, P.cost(R), P.msg);
 
 #ifdef ezxdisp
       std::cerr << "\n";

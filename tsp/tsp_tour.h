@@ -24,7 +24,7 @@ class tsp_tour {
  public:
   int N;
   const double siz, ran, seq, rad;
-  std::string last;
+  std::string msg;
 
   typedef typename config::value_type city_t;
 
@@ -166,7 +166,7 @@ class tsp_tour {
 
   int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {
     auto center = random() % C.size();
-    last = "rad(" + i2s(center) + "," + i2s(size) + ")";
+    msg = "rad(" + i2s(center) + "," + i2s(size) + ")";
     Us.first.clear();
     std::for_each_n(rad_nxt[center].begin(), size, [&C, &Us](auto& c) {
       C.erase(c);
@@ -177,7 +177,7 @@ class tsp_tour {
 
   int draw_seq(config& C, int size, std::pair<urn, urn>& Us) {
     auto start = random() % C.size();
-    last = "seq(" + i2s(start) + "," + i2s(size) + ")";
+    msg = "seq(" + i2s(start) + "," + i2s(size) + ")";
     typename config::iterator it = C[start];
     int ret = *it;
     while (size-- > 0 && it != C.end()) {
@@ -198,7 +198,7 @@ class tsp_tour {
                std::pair<urn, urn>& Us) {
     assert(Us.first.size() == 0);
     assert(Us.second.size() == static_cast<unsigned>(N));
-    last = "ran(" + i2s(size) + ")";
+    msg = "ran(" + i2s(size) + ")";
     for (; size > 0; --size) {
       int r = edraw(Us.second);
       Us.first.push_back(r);
