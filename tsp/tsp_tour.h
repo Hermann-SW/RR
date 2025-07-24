@@ -287,15 +287,15 @@ _stop
     }
   }
 
-  void save_tour(config& C, int seed, int m) {
+  void save_tour(config& T, int seed, int m) {
     std::string fname = "solution.sm_"+i2s(seed)+"_"+i2s(m)+".tour";
     std::ofstream os(fname);
     os << "NAME : " << fname << ".tour\n";
-    os << "COMMENT : Length " << i2s(cost(C)) << "\n";
+    os << "COMMENT : Length " << i2s(cost(T)) << "\n";
     os << "TYPE : TOUR\n";
     os << "DIMENSION : " << i2s(N) << "\n";
     os << "TOUR_SECTION\n";
-    print(C, os, '\n', 1);
+    print(T, os, '\n', 1);
     os << "-1\nEOF\n";
   }
 
