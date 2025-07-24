@@ -89,6 +89,8 @@ class tsp_tour {
       C[i].first = (C[i].first - xmin)/scale;
       C[i].second = (C[i].second - ymin)/scale;
     }
+#else
+    CC = C;
 #endif
   }
 
