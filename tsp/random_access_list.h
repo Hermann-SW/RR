@@ -26,6 +26,18 @@ class random_access_list {
     for (int i = 0; i < N; ++i)  A[i] = L.end();
   }
 
+#define __(_L)                                           \
+    N = _L.N;                                            \
+    L = _L.L;                                            \
+    A = std::vector<iterator>(N);                        \
+    for (iterator it = L.begin(); it != L.end(); ++it) { \
+      A[*it] = it;                                       \
+    }
+
+  random_access_list(random_access_list& _L) { __(_L) }
+  random_access_list operator=(random_access_list& _L) { __(_L) return *this; }
+#undef __
+
   // Element access
   iterator& operator[](std::size_t i)  { return A[i]; }
   val& back()  { return L.back(); }

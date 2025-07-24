@@ -102,11 +102,6 @@ void RR_greedy(const std::string& fname, int seed) {
 #endif
 
       T = R;
-      UsR.second.clear();
-      for (typename config::iterator it = T.begin(); it != T.end(); ++it) {
-        T[*it] = it;
-        UsR.second.push_back(*it);
-      }
     }
   }
   errlog(-1, P.cost(T),
