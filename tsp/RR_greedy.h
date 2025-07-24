@@ -129,7 +129,7 @@ void RR_greedy(const std::string& fname, int seed) {
   urn V(S.begin(), S.end());
   for (int i = 0; i < P.N; ++i)  assert(V[i] == i);
 
-  save_tour(T, seed, nmutations, P.cost(T));
+  P.save_tour(T, seed, nmutations);
 
 #ifdef ezxdisp
   config dummy;

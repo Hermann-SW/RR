@@ -24,19 +24,6 @@ void print(C& L, std::ostream& os = std::cout, const char sep = ' ',
   std::cout << '\n';
 }
 
-template <typename C>
-void save_tour(C& L, int seed, int m, int c) {
-  std::string fname = "solution.sm_"+i2s(seed)+"_"+i2s(m)+".tour";
-  std::ofstream os(fname);
-  os << "NAME : " << fname << ".tour\n";
-  os << "COMMENT : Length " << i2s(c) << "\n";
-  os << "TYPE : TOUR\n";
-  os << "DIMENSION : " << i2s(L.size()) << "\n";
-  os << "TOUR_SECTION\n";
-  print(L, os, '\n', 1);
-  os << "-1\nEOF\n";
-}
-
 template <typename urn>
 typename urn::value_type edraw(urn& U) {
   auto r = random() % U.size();
