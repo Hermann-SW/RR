@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     return EXIT_SUCCESS;
   }
 
-  srandom(seed);
+  mtgen.seed(seed);
 
   RR_greedy<random_access_list<int>, std::vector<int>>(argv[optind], seed);
 

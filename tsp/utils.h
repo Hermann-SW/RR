@@ -4,8 +4,12 @@
 #include <sys/time.h>
 #include <string>
 #include <fstream>
+#include <random>
 
 #include "./tsp_tour.h"
+
+std::mt19937 mtgen;
+std::uniform_real_distribution<> dis(0.0, 1.0);
 
 auto _sum = 0;
 struct timeval _tv0;
@@ -26,7 +30,7 @@ void print(C& L, std::ostream& os = std::cout, const char sep = ' ',
 
 template <typename urn>
 typename urn::value_type edraw(urn& U) {
-  auto r = random() % U.size();
+  auto r = mtgen() % U.size();
   typename urn::value_type ret = U[r];
   U[r] = U.back();
   U.pop_back();

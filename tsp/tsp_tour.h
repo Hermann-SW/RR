@@ -138,7 +138,7 @@ class tsp_tour {
     } else if (src->starts_with("radial_")) {
       int extc = -1;
       if (src->starts_with("radial_ran")) {
-        extc = random() % N;
+        extc = mtgen() % N;
       } else if (src->starts_with("radial_min")) {
         extc = ext_sum(std::numeric_limits<int>::max(),
                        [](int64_t a, int64_t b){return a-b;});
@@ -168,7 +168,7 @@ class tsp_tour {
   }
 
   int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {
-    auto center = random() % C.size();
+    auto center = mtgen() % C.size();
     msg = "rad(" + i2s(center) + "," + i2s(size) + ")";
     Us.first.clear();
     std::for_each_n(rad_nxt[center].begin(), size, [&C, &Us](auto& c) {
@@ -179,7 +179,7 @@ class tsp_tour {
   }
 
   int draw_seq(config& C, int size, std::pair<urn, urn>& Us) {
-    auto start = random() % C.size();
+    auto start = mtgen() % C.size();
     msg = "seq(" + i2s(start) + "," + i2s(size) + ")";
     typename config::iterator it = C[start];
     int ret = *it;
@@ -215,7 +215,7 @@ class tsp_tour {
 
   int draw(config& C, int size,
            std::pair<urn, urn>& Us) {
-    double d = drand48();
+    double d = dis(mtgen);
 
     if      (d < ran)      return draw_ran(C, size, Us);
     else if (d < ran+seq)  return draw_seq(C, size, Us);
@@ -229,7 +229,7 @@ class tsp_tour {
   -  -(1+start) city for seq
 */
   int ruin(config& C, std::pair<urn, urn>& Us) {
-    return draw(C, ceil(drand48() * (siz * N)), Us);
+    return draw(C, ceil(dis(mtgen) * (siz * N)), Us);
   }
 
 
