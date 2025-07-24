@@ -125,7 +125,10 @@ class tsp_tour {
     C.init(N);
     Us.first.clear();
     Us.second.clear();
-    for (int i = 0; i < N; ++i)  Us.first.push_back(i);
+    for (int i = 0; i < N; ++i) {
+      Us.first.push_back(i);
+      Us.second.push_back(i);
+    }
   }
 
   void RR_all(config &C, std::pair<urn, urn> &Us, const std::string *src) {

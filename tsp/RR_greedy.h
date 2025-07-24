@@ -65,22 +65,17 @@ void RR_greedy(const std::string& fname, int seed) {
 
   for (int i = 1; i <= nmutations; ++i) {
     config R = T;
-    std::pair<urn, urn> UsR;
-    for (typename config::iterator it = R.begin(); it != R.end(); ++it) {
-      R[*it] = it;
-      UsR.second.push_back(*it);
-    }
 
 #ifdef ezxdisp
-    int ret = P.ruin(R, UsR);
+    int ret = P.ruin(R, Us);
     RC = R;
-    UC = UsR.first;
+    UC = Us.first;
 #else
-    (void) P.ruin(R, UsR);
+    (void) P.ruin(R, Us);
 #endif
 
     auto oldsum = _sum;
-    P.recreate(R, UsR);
+    P.recreate(R, Us);
 
     if (P.cost(R) < P.cost(T)) {
       P.msg += " (" + i2s(_sum - oldsum) + "us)          ";
@@ -118,6 +113,9 @@ void RR_greedy(const std::string& fname, int seed) {
   });
   std::cout << "]\n";
 #endif
+
+  std::sort(Us.second.begin(), Us.second.end());
+  for (int i = 0; i < P.N; ++i)  assert(Us.second[i] == i);
 
   config S = T;
   S.sort();
