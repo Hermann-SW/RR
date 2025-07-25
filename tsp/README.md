@@ -107,3 +107,6 @@ pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_max ../data/tsp/usa1
 
 Both initial tour lengths are roughly the same, and the same as a typical random ```RR_all()``` tour length.
 
+100,000 cities Mona Lisa TSP Challange is discussed [here](https://github.com/Hermann-SW/RR?tab=readme-ov-file#mona-lisa-tsp-challenge):  
+![res/mona-lisa100K.1x1pix.png](res/mona-lisa100K.1x1pix.png)  
+![res/mona-lisa100K.part.png](res/mona-lisa100K.part.png)
