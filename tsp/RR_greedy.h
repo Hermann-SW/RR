@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <limits>
+#include <algorithm>
 
 #ifdef ezxdisp
 #include "./disp_utils.h"
@@ -51,39 +52,44 @@ void RR_greedy(const std::string& fname, int seed) {
   _sum = 0;
 
 #ifdef ezxdisp
-  config RC;
+  config rui, old;
   urn UC;
   bool confirm = true;
 
   std::cerr << "\n";
 
-  ezx_tours(P, T, RC, Us.first, RC, std::numeric_limits<int>::min(), 0, e);
+  ezx_tours(P, T, rui, Us.first, rui, std::numeric_limits<int>::min(), 0, e);
 
   if (nmutations > 0)
      (void) ezx_pushbutton(e, NULL, NULL);
 #endif
 
+  int oldcost = P.cost(T);
+
   for (int i = 1; i <= nmutations; ++i) {
-    config R = T;
+    T.restore_point();
 
 #ifdef ezxdisp
-    int ret = P.ruin(R, Us);
-    RC = R;
+    old = T;
+    int ret = P.ruin(T, Us);
+    rui = T;
     UC = Us.first;
 #else
-    (void) P.ruin(R, Us);
+    (void) P.ruin(T, Us);
 #endif
 
     auto oldsum = _sum;
-    P.recreate(R, Us);
+    P.recreate(T, Us);
+    int newcost = P.cost(T);
 
-    if (P.cost(R) < P.cost(T)) {
+    if (newcost < oldcost) {
+      oldcost = newcost;
       P.msg += " (" + i2s(_sum - oldsum) + "us)          ";
-      errlog(i, P.cost(R), P.msg);
+      errlog(i, newcost, P.msg);
 
 #ifdef ezxdisp
       std::cerr << "\n";
-      ezx_tours(P, T, RC, UC, R, ret, i, e);
+      ezx_tours(P, old, rui, UC, T, ret, i, e);
 
       if (confirm) {
         int b;
@@ -95,8 +101,8 @@ void RR_greedy(const std::string& fname, int seed) {
         confirm = (0 != (ezx_sensebutton(e, NULL, NULL) & EZX_BUTTON_LMASK));
       }
 #endif
-
-      T = R;
+    } else {
+      T.restore();
     }
   }
   errlog(-1, P.cost(T),
