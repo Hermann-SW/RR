@@ -24,6 +24,7 @@ class tsp_tour {
  public:
   int N;
   const double siz, ran, seq, rad;
+  int cost, bcost;
   std::string msg;
 
   typedef typename config::value_type city_t;
@@ -95,7 +96,7 @@ class tsp_tour {
   }
 
 
-  int cost(config& C) {
+  int Cost(config& C) {
     int cost = 0;
     int prev = C.empty() ? -1 : C.back();
     std::for_each(C.begin(), C.end(), [this, &cost, &prev](const int c) {
@@ -121,6 +122,12 @@ class tsp_tour {
     return extc;
   }
 
+  int delta(config& C, city_t c) {
+    int prev = C.cyclic_prev(c);
+    int succ = C.cyclic_succ(c);
+    return D[prev][succ] - D[prev][c] - D[c][succ];
+  }
+
   void init(config &C, std::pair<urn, urn> &Us) {
     C.init(N);
     Us.first.clear();
@@ -129,6 +136,7 @@ class tsp_tour {
       Us.first.push_back(i);
       Us.second.push_back(i);
     }
+    cost = 0;
   }
 
   void RR_all(config &C, std::pair<urn, urn> &Us, const std::string *src) {
@@ -171,7 +179,8 @@ class tsp_tour {
     auto center = mtgen() % C.size();
     msg = "rad(" + i2s(center) + "," + i2s(size) + ")";
     Us.first.clear();
-    std::for_each_n(rad_nxt[center].begin(), size, [&C, &Us](auto& c) {
+    std::for_each_n(rad_nxt[center].begin(), size, [&C, &Us, this](auto& c) {
+      cost += delta(C, c);
       C.erase(c);
       Us.first.push_back(c);
     });
@@ -185,12 +194,14 @@ class tsp_tour {
     int ret = *it;
     while (size-- > 0 && it != C.end()) {
       int c = *it;
+      cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
     }
     it = C.begin();
     while (size-- > 0) {
       int c = *it;
+      cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
     }
@@ -205,6 +216,7 @@ class tsp_tour {
     for (; size > 0; --size) {
       int r = edraw(Us.second);
       Us.first.push_back(r);
+      cost += delta(C, r);
       C.erase(r);
     }
     std::for_each(Us.first.begin(), Us.first.end(), [&Us](int c)  {
@@ -242,16 +254,18 @@ _start
       int prev = C.empty() ? -1 : C.back();
       typename config::iterator best = C.end();
       for (typename config::iterator it = C.begin(); it != C.end(); ++it) {
-        int cur = *it;
-        int ncost = D[prev][c] + D[c][cur] - D[prev][cur];
+        int ncost = D[prev][c] + D[c][*it] - D[prev][*it];
         if (ncost < mincost) {
           best = it;
           mincost = ncost;
         }
-        prev = cur;
+        prev = *it;
       }
 _stop
       C.insert(best, c);
+      if (C.size() > 1) {
+        cost += mincost;
+      }
     }
   }
 
@@ -294,13 +308,16 @@ _stop
     std::string fname = "solution.sm_"+i2s(seed)+"_"+i2s(m)+".tour";
     std::ofstream os(fname);
     os << "NAME : " << fname << ".tour\n";
-    os << "COMMENT : Length " << i2s(cost(T)) << "\n";
+    os << "COMMENT : Length " << i2s(Cost(T)) << "\n";
     os << "TYPE : TOUR\n";
     os << "DIMENSION : " << i2s(N) << "\n";
     os << "TOUR_SECTION\n";
     print(T, os, '\n', 1);
     os << "-1\nEOF\n";
   }
+
+  void restore_point(config& L) { L.restore_point(); bcost = cost; }
+  void restore(config& L) { L.restore(); cost = bcost; }
 
   std::vector<coord_t> C;
   std::vector<coord_t> CC;

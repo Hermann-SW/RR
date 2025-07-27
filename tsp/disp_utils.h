@@ -54,7 +54,7 @@ if (!single_display) {
                          (initial ? (mut == 0 ? "RR_all" : "minimum found")
                                   : "previous")), &ezx_black);
   std::stringstream s2;
-  s2 << P.cost(T);
+  s2 << P.Cost(T);
   if (single_display) {
     s2 << " (global minimum " << glob_min << ")";
   }
@@ -70,12 +70,12 @@ if (!single_display) {
     else
       s2 << (ret >= 0 ? "rad" : "seq");
     s2 << "(" << U.size() << ") ";
-    s2 << P.cost(R);
+    s2 << P.Cost(R);
     ezx_str_2d(e, 50+wid+2*marx, hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
     s2 = std::stringstream();
-    s2 << P.cost(N) << " (" << P.cost(N) - P.cost(T) << ")";
+    s2 << P.Cost(N) << " (" << P.Cost(N) - P.Cost(T) << ")";
     ezx_str_2d(e, 50+2*(wid+2*marx), hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);
@@ -92,7 +92,7 @@ if (!single_display) {
                  ("global minimum")), &ezx_black);
 
     s2 = std::stringstream();
-    s2 << P.cost(R);
+    s2 << P.Cost(R);
     ezx_str_2d(e, 50+wid+2*marx, hei+2*mary-2,
                const_cast<char*>(reinterpret_cast<const char *>
                  (s2.str().c_str())), &ezx_black);

@@ -1,5 +1,4 @@
 50778           global minimum
-
 0: 58136           RR_all() […us]
 1: 57879           ran(108) (…us)          
 5: 57405           rad(412,119) (…us)          
@@ -89,7 +88,4 @@
 38886: 50904           seq(56,18) (…us)          
 46921: 50879           rad(54,28) (…us)          
 50879           local minimum found (100000 greedy mutations; seed=670)
-
 5971           ms (only recreate)
-
-

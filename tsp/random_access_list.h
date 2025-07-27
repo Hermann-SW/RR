@@ -67,6 +67,16 @@ class random_access_list {
   void restore() { L = B;
     for (iterator it = L.begin(); it != L.end(); ++it) { A[*it] = it; }
   }
+
+  val cyclic_prev(val c) {
+    return *--(A[c] == L.begin() ? L.end() : A[c]);
+  }
+  val cyclic_succ(val c) {
+    iterator it = A[c];
+    it = ++it;
+    if (it == L.end()) it = L.begin();
+    return *it;
+  }
 };
 
 #endif  // TSP_RANDOM_ACCESS_LIST_H_

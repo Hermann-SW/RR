@@ -44,11 +44,11 @@ void RR_greedy(const std::string& fname, int seed) {
     typename config::value_type c = P.Opt[i] - 1;
     O.push_back(c);
   }
-  errlog(-1, glob_min = P.cost(O), "global minimum");
+  errlog(-1, glob_min = P.Cost(O), "global minimum");
 
   P.RR_all(T, Us, src);
 
-  errlog(0, P.cost(T), "RR_all() [" + i2s(_sum) + "us]");
+  errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
   _sum = 0;
 
 #ifdef ezxdisp
@@ -64,10 +64,10 @@ void RR_greedy(const std::string& fname, int seed) {
      (void) ezx_pushbutton(e, NULL, NULL);
 #endif
 
-  int oldcost = P.cost(T);
+  int oldcost = P.cost;
 
   for (int i = 1; i <= nmutations; ++i) {
-    T.restore_point();
+    P.restore_point(T);
 
 #ifdef ezxdisp
     old = T;
@@ -80,7 +80,7 @@ void RR_greedy(const std::string& fname, int seed) {
 
     auto oldsum = _sum;
     P.recreate(T, Us);
-    int newcost = P.cost(T);
+    int newcost = P.cost;
 
     if (newcost < oldcost) {
       oldcost = newcost;
@@ -102,10 +102,10 @@ void RR_greedy(const std::string& fname, int seed) {
       }
 #endif
     } else {
-      T.restore();
+      P.restore(T);
     }
   }
-  errlog(-1, P.cost(T),
+  errlog(-1, P.cost,
          "local minimum found ("+i2s(nmutations)+" greedy mutations; seed="
          +i2s(seed)+")");
   errlog(-1, (_sum+500)/1000, "ms (only recreate)");
