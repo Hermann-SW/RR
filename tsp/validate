@@ -1,4 +1,4 @@
 #!/bin/bash
 rm -f nohup.out
 nohup ./greedy -s 670 ../data/tsp/pcb442
-diff <(sed "s/\xd/\n/g" nohup.out | sed "s/[0-9][0-9]*us/…us/") nohup.out.norm.comp
+diff <(sed "s/\xd/\n/g" nohup.out | sed "s/[0-9][0-9]*us/…us/" | grep -v "^$") nohup.out.norm.comp

@@ -6,7 +6,7 @@
 
 template <typename val>
 class random_access_list {
-  std::list<val> L;
+  std::list<val> L, B;
   int N;
 
  public:
@@ -34,8 +34,10 @@ class random_access_list {
       A[*it] = it;                                       \
     }
 
-  random_access_list(random_access_list& _L) { __(_L) }
-  random_access_list operator=(random_access_list& _L) { __(_L) return *this; }
+  random_access_list(const random_access_list& _L) { __(_L) }
+  random_access_list operator=(const random_access_list& _L) {
+    __(_L) return *this;
+  }
 #undef __
 
   // Element access
@@ -60,6 +62,21 @@ class random_access_list {
 
   // Operations
   void sort()  { L.sort(); }
+
+  void restore_point() { B = L; }
+  void restore() { L = B;
+    for (iterator it = L.begin(); it != L.end(); ++it) { A[*it] = it; }
+  }
+
+  val cyclic_prev(val c) {
+    return *--(A[c] == L.begin() ? L.end() : A[c]);
+  }
+  val cyclic_succ(val c) {
+    iterator it = A[c];
+    it = ++it;
+    if (it == L.end()) it = L.begin();
+    return *it;
+  }
 };
 
 #endif  // TSP_RANDOM_ACCESS_LIST_H_
