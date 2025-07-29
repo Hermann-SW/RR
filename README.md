@@ -2,6 +2,8 @@
 
 This repo is followup on [pcb442.cpp gist](https://gist.github.com/Hermann-SW/1218d13dc7fb95aa90687ad8baa06787).  
 
+Initially TSP implementation of Ruin&Recreate from [Record Breaking Optimization Results Using the Ruin and Recreate Principle](https://www.semanticscholar.org/paper/Record-Breaking-Optimization-Results-Using-the-Ruin-Schrimpf-Schneider/4f80e70e51e368858c3df0787f05c3aa2b9650b4) 2000 Journal of Theoretical Physics paper.
+
 Sofar 111 TSP sample problems have been added, and length of most (92) of 108 optimal tours have been verified. See README.md documentation here:  
 [data/tsp/](data/tsp/)  
 
