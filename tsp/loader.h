@@ -29,7 +29,7 @@ int euc_2d(const coord_t& from, const coord_t& to) {
 #ifdef MEMOPT
   assert(d <= 32767);
 #endif
-  return nint(sqrt(xd*xd + yd*yd));
+  return d;
 }
 int ceil_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
@@ -38,7 +38,7 @@ int ceil_2d(const coord_t& from, const coord_t& to) {
 #ifdef MEMOPT
   assert(d <= 32767);
 #endif
-  return static_cast<int>(ceil(sqrt(xd*xd + yd*yd)));
+  return static_cast<int>(d);
 }
 int att(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
