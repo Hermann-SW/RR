@@ -25,11 +25,19 @@ inline int nint(double d) { return static_cast<int>(0.5 + d); }
 int euc_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
   double yd = from.second - to.second;
+  int d = nint(sqrt(xd*xd + yd*yd));
+#ifdef MEMOPT
+  assert(d <= 32767);
+#endif
   return nint(sqrt(xd*xd + yd*yd));
 }
 int ceil_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
   double yd = from.second - to.second;
+  double d = ceil(sqrt(xd*xd + yd*yd));
+#ifdef MEMOPT
+  assert(d <= 32767);
+#endif
   return static_cast<int>(ceil(sqrt(xd*xd + yd*yd)));
 }
 int att(const coord_t& from, const coord_t& to) {
@@ -37,7 +45,11 @@ int att(const coord_t& from, const coord_t& to) {
   double yd = from.second - to.second;
   double rij = sqrt((xd*xd + yd*yd) / 10.0);
   double tij = nint(rij);
-  return static_cast<int>(tij < rij ? tij + 1 : tij);
+  double d = tij < rij ? tij + 1 : tij;
+#ifdef MEMOPT
+  assert(abs(d) <= 32767);
+#endif
+  return static_cast<int>(d);
 }
 double deg2rad(double xy) {
   double PI = 3.141592;
@@ -50,7 +62,9 @@ int geo(const coord_t& from, const coord_t& to) {
   double lat = deg2rad(to.first);
   double lof = deg2rad(from.second);
   double lot = deg2rad(to.second);
-
+#ifdef MEMOPT
+// maximal distance is 20,000 — no assert neccessary
+#endif
   double RRR = 6378.388;
   double q1 = cos(lof - lot);
   double q2 = cos(laf - lat);
