@@ -48,7 +48,7 @@ cpplint9: normalize_tour.cpp
 	cpplint --filter=-legal/copyright,-runtime/references $<
 
 cppcheck: load_test.cpp
-	cppcheck --enable=all --suppress=missingIncludeSystem $<
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck2: loader.h
 	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
@@ -72,7 +72,7 @@ cppcheck8: RR_greedy.h
 	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck9: normalize_tour.cpp
-	cppcheck --enable=all --suppress=missingIncludeSystem $<
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 clean:
 	rm -f load_test greedy

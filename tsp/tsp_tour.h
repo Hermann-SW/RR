@@ -42,7 +42,8 @@ class tsp_tour {
 
   tsp_tour(const std::string& fname, double _siz,
                                      double _ran, double _seq, double _rad):
-  siz(_siz), ran(_ran), seq(_seq), rad(_rad), Dless(), D(NULL), rad_nxt(NULL) {
+    siz(_siz), ran(_ran), seq(_seq), rad(_rad),
+    cost(0), bcost(0), Dless(), D(NULL), rad_nxt(NULL) {
     assert(siz >= 0.0 && siz <= 1.0);
     assert(ran+seq+rad == 1.0);
     assert(ran >= 0.0 && seq >= 0.0 && rad >= 0.0);
@@ -97,12 +98,12 @@ class tsp_tour {
 
 
   int Cost(config& C) {
-    int cost = 0;
+    int cst = 0;
     int prev = C.empty() ? -1 : C.back();
-    std::for_each(C.begin(), C.end(), [this, &cost, &prev](const int c) {
-                                        cost += D[prev][c]; prev = c;
+    std::for_each(C.begin(), C.end(), [this, &cst, &prev](const int c) {
+                                        cst += D[prev][c]; prev = c;
                                       });
-    return cost;
+    return cst;
   }
 
   int64_t dist_sum(city_t c) {
