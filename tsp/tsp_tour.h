@@ -144,27 +144,6 @@ class tsp_tour {
     init(C, Us);
     if (src == NULL) {
       recreate(C, Us);
-    } else if (src->starts_with("radial_")) {
-      int extc = -1;
-      if (src->starts_with("radial_ran")) {
-        extc = mtgen() % N;
-      } else if (src->starts_with("radial_min")) {
-        extc = ext_sum(std::numeric_limits<int>::max(),
-                       [](int64_t a, int64_t b){return a-b;});
-      } else if (src->starts_with("radial_max")) {
-        extc = ext_sum(std::numeric_limits<int>::min(),
-                       [](int64_t a, int64_t b){return b-a;});
-      }
-      assert(extc != -1);
-#ifdef ezxdisp
-      c_radial = extc;
-      r_radial = dist_sum(extc) / N;
-#endif
-      Us.first.clear();
-      for (int j = 0; j < N ; ++j) {
-        Us.first.push_back(rad_nxt[extc][j]);
-      }
-      recreate(C, Us);
     } else {
       std::vector<city_t> vc;
       load<city_t>(*src, vc);
