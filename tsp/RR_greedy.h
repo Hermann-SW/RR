@@ -36,7 +36,11 @@ void RR_greedy(const std::string& fname, int seed) {
   if (P.N > 50000)
      (void) ezx_pushbutton(e, NULL, NULL);
 #endif
+_start
   P.init_dist();
+_stop
+  errlog(-1, -1, "init_dist() [" + i2s(_sum) + "us]");
+  _sum = 0;
 
   config O;  // P.Opt is 1-based
   O.init(P.N);
