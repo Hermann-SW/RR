@@ -269,7 +269,7 @@ class tsp_tour {
   tsp_tour(const std::string& fname, double _siz,
                                      double _ran, double _seq, double _rad):
     siz(_siz), ran(_ran), seq(_seq), rad(_rad),
-    cost(0), bcost(0), Dless(), D(NULL), rad_nxt(NULL) {
+    cost(0), bcost(0), Dless(), D(NULL) {
     assert(siz >= 0.0 && siz <= 1.0);
     assert(ran+seq+rad == 1.0);
     assert(ran >= 0.0 && seq >= 0.0 && rad >= 0.0);
@@ -369,24 +369,15 @@ _stop
 
   int16_t **D;           // distance matrix
 
-  std::vector<int> *rad_nxt;     // radial next
-
   void init_dist() {
     typedef int16_t *pint;
     D = new pint[N];
-    rad_nxt = new std::vector<int>[N];
 
     for (int from = 0; from < N; ++from) {
       D[from] = new int16_t[N];
       for (int to = 0; to < N; ++to) {
         D[from][to] = dist(CC[from], CC[to]);
-        rad_nxt[from].push_back(to);
       }
-    }
-
-    for (int from = 0; from < N; ++from) {
-      Dless.vi = D[from];
-      std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
     }
   }
 
