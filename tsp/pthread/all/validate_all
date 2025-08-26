@@ -1,0 +1,4 @@
+#!/bin/bash
+rm -f nohup.out
+nohup ./all -s 670 ../../../data/tsp/pcb442
+diff <(sed "s/\xd/\n/g" nohup.out | grep -v "init_dist()" | sed "s/[0-9][0-9]*us/…us/" | grep -v "^$") nohup.all.out.norm.comp
