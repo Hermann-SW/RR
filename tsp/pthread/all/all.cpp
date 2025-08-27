@@ -410,14 +410,6 @@ _stop
   errlog(-1, -1, "init_dist() [" + i2s(_sum) + "us]");
   _sum = 0;
 
-  config O;  // P.Opt is 1-based
-  O.init(P.N);
-  for (int i = 0; i < P.N; ++i) {
-    typename config::value_type c = P.Opt[i] - 1;
-    O.push_back(c);
-  }
-  errlog(-1, glob_min = P.Cost(O), "global minimum");
-
   P.RR_all(T, Us, src);
 
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
