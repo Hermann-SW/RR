@@ -340,6 +340,7 @@ class tsp_tour {
         C.push_back(ct);
       });
       Us.first.clear();
+      cost = Cost(C);
     }
   }
 
@@ -409,6 +410,15 @@ _start
 _stop
   errlog(-1, -1, "init_dist() [" + i2s(_sum) + "us]");
   _sum = 0;
+
+  config O;  // P.Opt is 1-based
+  O.init(P.N);
+  for (int i = 0; i < P.N; ++i) {
+    typename config::value_type c = P.Opt[i] - 1;
+    O.push_back(c);
+  }
+  errlog(-1, glob_min = P.Cost(O), "global minimum");
+  assert(opt_length == P.Cost(O));
 
   P.RR_all(T, Us, src);
 
