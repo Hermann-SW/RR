@@ -289,7 +289,7 @@ class tsp_tour {
     int cst = 0;
     int prev = C.empty() ? -1 : C.back();
     std::for_each(C.begin(), C.end(), [this, &cst, &prev](const int c) {
-                                        cst += D[prev][c]; prev = c;
+                                        cst += dist(CC[prev], CC[c]); prev = c;
                                       });
     return cst;
   }
@@ -297,7 +297,7 @@ class tsp_tour {
   int64_t dist_sum(city_t c) {
     int64_t sum = 0;  // prevent overflow for eg. usa13509
     for (int j = 0; j < N ; ++j) {
-      sum += D[c][j];
+      sum += dist(CC[c], CC[j]);
     }
     return sum;
   }
@@ -314,7 +314,7 @@ class tsp_tour {
   int delta(config& C, city_t c) {
     int prev = C.cyclic_prev(c);
     int succ = C.cyclic_succ(c);
-    return D[prev][succ] - D[prev][c] - D[c][succ];
+    return dist(CC[prev], CC[succ]) - dist(CC[prev], CC[c]) - dist(CC[c], CC[succ]);
   }
 
   void init(config &C, std::pair<urn, urn> &Us) {
@@ -353,7 +353,7 @@ _start
       int prev = C.empty() ? -1 : C.back();
       typename config::iterator best = C.end();
       for (typename config::iterator it = C.begin(); it != C.end(); ++it) {
-        int ncost = D[prev][c] + D[c][*it] - D[prev][*it];
+        int ncost = dist(CC[prev], CC[c]) + dist(CC[c], CC[*it]) - dist(CC[prev], CC[*it]);
         if (ncost < mincost) {
           best = it;
           mincost = ncost;
@@ -406,7 +406,7 @@ void RR_greedy(const std::string& fname, int seed) {
   tsp_tour<config, urn> P(fname, 0.3,  1.0/3, 1.0/3, 1.0/3);
   seed *= 1;
 _start
-  P.init_dist();
+//  P.init_dist();
 _stop
   errlog(-1, -1, "init_dist() [" + i2s(_sum) + "us]");
   _sum = 0;
