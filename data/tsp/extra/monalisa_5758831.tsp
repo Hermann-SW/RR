@@ -1,1 +1,0 @@
-mona-lisa100K.tsp
