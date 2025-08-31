@@ -49,6 +49,7 @@ _stop
     O.push_back(c);
   }
   errlog(-1, glob_min = P.Cost(O), "global minimum");
+  assert(opt_length == P.Cost(O));
 
   P.RR_all(T, Us, src);
 

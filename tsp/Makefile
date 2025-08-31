@@ -54,7 +54,7 @@ cppcheck2: loader.h
 	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 cppcheck3: greedy.cpp
-	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=useInitializationList $<
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=useInitializationList --suppress=unusedFunction $<
 
 cppcheck4: random_access_list.h
 	cppcheck --language=c++ --enable=all --suppress=missingIncludeSystem --suppress=useInitializationList --suppress=unusedFunction $<

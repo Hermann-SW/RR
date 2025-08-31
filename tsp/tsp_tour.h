@@ -152,6 +152,7 @@ class tsp_tour {
         C.push_back(ct);
       });
       Us.first.clear();
+      cost = Cost(C);
     }
   }
 
