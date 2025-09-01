@@ -18,6 +18,13 @@
 #include <sstream>
 #include <iostream>
 
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_2_algorithms.h>
+#include <iostream>
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef K::Point_2 Point_2;
+
 #ifndef TSP_UTILS_H_
 #define TSP_UTILS_H_
 
@@ -25,8 +32,6 @@
 #include <string>
 #include <fstream>
 #include <random>
-
-// #include "./tsp_tour.h"
 
 std::mt19937 mtgen;
 std::uniform_real_distribution<> dis(0.0, 1.0);
@@ -423,6 +428,17 @@ _stop
   P.RR_all(T, Us, src);
 
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
+
+  Point_2 *points = new Point_2[P.CC.size()];
+  int i=0;
+  std::for_each(T.begin(), T.end(), [&i, &points, &P](const int c) {
+    points[i] = Point_2(P.CC[c].first, P.CC[c].second);
+    ++i;
+  });
+
+  if (!CGAL::is_simple_2(points, points+P.CC.size())) {
+    std::cerr << "Error polygon is not simple\n";
+  }
 }
 #endif  // TSP_RR_GREEDY_H_
 
