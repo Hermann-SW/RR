@@ -1,0 +1,11 @@
+NAME : 1243.tour
+COMMENT : Optimum tour (Length 3)
+TYPE : TOUR
+DIMENSION : 4
+TOUR_SECTION  
+1
+2
+4
+3
+-1
+EOF
