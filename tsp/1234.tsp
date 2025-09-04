@@ -1,4 +1,5 @@
 NAME : 1234.tsp
+COMMENT: TSP with non-simple polygon optimal tour (hsw)
 TYPE : TSP
 DIMENSION : 4
 EDGE_WEIGHT_TYPE : EUC_2D

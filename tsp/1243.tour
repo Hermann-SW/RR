@@ -1,5 +1,5 @@
 NAME : 1243.tour
-COMMENT : Optimum tour (Length 3)
+COMMENT : non-simple polygon optimal tour (Length 3)
 TYPE : TOUR
 DIMENSION : 4
 TOUR_SECTION  

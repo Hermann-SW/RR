@@ -1,0 +1,11 @@
+NAME : i1234.opt.tour
+COMMENT : simple polygon tour (Length 14)
+TYPE : TOUR
+DIMENSION : 4
+TOUR_SECTION  
+1
+2
+3
+4
+-1
+EOF

@@ -1,0 +1,11 @@
+NAME : i1243.tour
+COMMENT : non-simple polygon optimal tour (Length 13)
+TYPE : TOUR
+DIMENSION : 4
+TOUR_SECTION  
+1
+2
+4
+3
+-1
+EOF
