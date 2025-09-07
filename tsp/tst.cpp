@@ -13,12 +13,12 @@ double minDistance(const Point& A, const Point& B, const Point& E);
 
 // https://www.geeksforgeeks.org/dsa/check-if-two-given-line-segments-intersect/
 //
-bool doIntersect(std::vector<std::vector<std::vector<int>>>& points);
+bool doIntersect(const std::vector<std::vector<std::vector<int>>>& points);
 
 
-int X = 2*22; //4;
-int Y = 2*18; //5;
-int D = 28; // mona-lisa100K.tsp minimal city distance
+int X = 50;  // 4;
+int Y = 38;  // 5;
+int D = 28;  // mona-lisa100K.tsp minimal city distance
 
 double dist(const Point& A, const Point& B) {
   return sqrt((B.F - A.F)*(B.F - A.F) + (B.S - A.S)*(B.S - A.S));
@@ -78,9 +78,9 @@ int main() {
     for (int x=mix; x <= max; ++x) {
       Point E = std::make_pair(x, y);
       if (minDistance(A, B, E) <= susq) {
-	int sid = side(A, B, E);
+        int sid = side(A, B, E);
         if (sid < 0) b.push_back(E);
-	else if (sid > 0) t.push_back(E);
+        else if (sid > 0) t.push_back(E);
       }
     }
   }
@@ -88,22 +88,35 @@ int main() {
   std::for_each(t.begin(), t.end(), [b, susq, A, B, t](const Point& p) {
     std::for_each(b.begin(), b.end(), [p, susq, A, B, t](const Point& q) {
       if (dist(p, q) <= susq) {
-        std::vector<std::vector<std::vector<int>>> points = 
+        std::vector<std::vector<std::vector<int>>> points =
           {{{A.F, A.S}, {B.F, B.S}}, {{p.F, p.S}, {q.F, q.S}}};
         if (doIntersect(points)) {
-	  if ((euc_2d(A, B) + euc_2d(B, p) + euc_2d(p, q) + euc_2d(q, A) <
-               euc_2d(A, p) + euc_2d(p, B) + euc_2d(B, q) + euc_2d(q, A)) &&
-	      mind(A, B, p, q) >= D) {
-	    std::cout << p.F << "," << p.S << " " << q.F << "," << q.S
-                      << "  (" << mind(A, B, p, q) << ")\n";
-	  } else
-	  if ((euc_2d(A, B) + euc_2d(B, q) + euc_2d(q, p) + euc_2d(p, A) <
-               euc_2d(A, p) + euc_2d(p, B) + euc_2d(B, q) + euc_2d(q, A)) &&
-	      mind(A, B, p, q) >= D) {
-	    std::cout << p.F << "," << p.S << " " << q.F << "," << q.S
-                      << "  (" << mind(A, B, p, q) << ")\n";
-	  }
-	}
+          int ma = std::numeric_limits<int>::min();
+          int simp = euc_2d(A, p) + euc_2d(p, B) + euc_2d(B, q) + euc_2d(q, A);
+          if ((euc_2d(A, B) + euc_2d(B, p) + euc_2d(p, q) + euc_2d(q, A) <
+               simp) && mind(A, B, p, q) >= D) {
+            ma = mind(A, B, p, q);
+          }
+          if ((euc_2d(A, B) + euc_2d(B, q) + euc_2d(q, p) + euc_2d(p, A) <
+               simp) && mind(A, B, p, q) >= D) {
+            if (mind(A, B, p, q) > ma) {
+              std::cout << q.F << "," << q.S << " " << p.F << "," << p.S
+                        << "  (" << mind(A, B, p, q) << ";"
+                        << minDistance(A, B, p) << "," << minDistance(A, B, q)
+                        << ")\n";
+            } else {
+              std::cout << p.F << "," << p.S << " " << q.F << "," << q.S
+                        << "  (" << mind(A, B, p, q) << ";"
+                        << minDistance(A, B, p) << "," << minDistance(A, B, q)
+                        << ")\n";
+            }
+          } else if (ma > std::numeric_limits<int>::min()) {
+            std::cout << p.F << "," << p.S << " " << q.F << "," << q.S
+                      << "  (" << mind(A, B, p, q) << ";"
+                      << minDistance(A, B, p) << "," << minDistance(A, B, q)
+                      << ")\n";
+          }
+        }
       }
     });
   });
@@ -167,20 +180,22 @@ double minDistance(const Point& A, const Point& B, const Point& E) {
     return reqAns;
 }
 
-
+/*
 // function to check if point q lies on line segment 'pr'
-bool onSegment(std::vector<int>& p, std::vector<int>& q, std::vector<int>& r) {
-    return (q[0] <= std::max(p[0], r[0]) && 
+bool onSegment(const std::vector<int>& p, const std::vector<int>& q, const std::vector<int>& r) {
+    return (q[0] <= std::max(p[0], r[0]) &&
             q[0] >= std::min(p[0], r[0]) &&
-            q[1] <= std::max(p[1], r[1]) && 
+            q[1] <= std::max(p[1], r[1]) &&
             q[1] >= std::min(p[1], r[1]));
 }
+*/
 
 // function to find orientation of ordered triplet (p, q, r)
 // 0 --> p, q and r are collinear
 // 1 --> Clockwise
 // 2 --> Counterclockwise
-int orientation(std::vector<int>& p, std::vector<int>& q, std::vector<int>& r) {
+int orientation(const std::vector<int>& p, const std::vector<int>& q,
+                const std::vector<int>& r) {
     int val = (q[1] - p[1]) * (r[0] - q[0]) -
               (q[0] - p[0]) * (r[1] - q[1]);
 
@@ -194,8 +209,7 @@ int orientation(std::vector<int>& p, std::vector<int>& q, std::vector<int>& r) {
 
 
 // function to check if two line segments intersect
-bool doIntersect(std::vector<std::vector<std::vector<int>>>& points) {
-
+bool doIntersect(const std::vector<std::vector<std::vector<int>>>& points) {
     // find the four orientations needed
     // for general and special cases
     int o1 = orientation(points[0][0], points[0][1], points[1][0]);
@@ -203,26 +217,30 @@ bool doIntersect(std::vector<std::vector<std::vector<int>>>& points) {
     int o3 = orientation(points[1][0], points[1][1], points[0][0]);
     int o4 = orientation(points[1][0], points[1][1], points[0][1]);
 
+    // new — avoid colinear
+    if (o1 == 0 || o2 == 0 || o3 == 0 || o4 == 0)
+        return false;
+
     // general case
     if (o1 != o2 && o3 != o4)
         return true;
-
+/*
     // special cases
     // p1, q1 and p2 are collinear and p2 lies on segment p1q1
-    if (o1 == 0 && 
+    if (o1 == 0 &&
     onSegment(points[0][0], points[1][0], points[0][1])) return true;
 
     // p1, q1 and q2 are collinear and q2 lies on segment p1q1
-    if (o2 == 0 && 
+    if (o2 == 0 &&
     onSegment(points[0][0], points[1][1], points[0][1])) return true;
 
     // p2, q2 and p1 are collinear and p1 lies on segment p2q2
-    if (o3 == 0 && 
+    if (o3 == 0 &&
     onSegment(points[1][0], points[0][0], points[1][1])) return true;
 
-    // p2, q2 and q1 are collinear and q1 lies on segment p2q2 
-    if (o4 == 0 && 
+    // p2, q2 and q1 are collinear and q1 lies on segment p2q2
+    if (o4 == 0 &&
     onSegment(points[1][0], points[0][1], points[1][1])) return true;
-
+*/
     return false;
 }

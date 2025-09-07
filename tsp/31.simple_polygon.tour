@@ -1,0 +1,11 @@
+NAME : 31.simple_polygon.tour
+COMMENT : simple polygon TSP (Length 190)
+TYPE : TOUR
+DIMENSION : 4
+TOUR_SECTION  
+1
+2
+3
+4
+-1
+EOF

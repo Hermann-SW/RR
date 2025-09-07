@@ -1,0 +1,11 @@
+NAME : 31.opt.tour
+COMMENT : non-simple polygon optimal tour (Length 189)
+TYPE : TOUR
+DIMENSION : 4
+TOUR_SECTION  
+1
+3
+2
+4
+-1
+EOF
