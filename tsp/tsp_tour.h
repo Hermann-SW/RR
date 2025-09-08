@@ -6,6 +6,7 @@
 #include <limits>
 #include <algorithm>
 #include <vector>
+#include <fstream>
 
 #include "./utils.h"
 
@@ -227,6 +228,7 @@ class tsp_tour {
 
 
   void recreate(config& C, std::pair<urn, urn>& Us) {
+    std::ofstream *os = (C.size() != 0) ? NULL : new std::ofstream("RR_all");
     while (!Us.first.empty()) {
       city_t c = edraw(Us.first);
       typename config::iterator itend = C.end(); assert(C[c] == itend);
@@ -243,11 +245,13 @@ _start
         prev = *it;
       }
 _stop
+      if (os)  *os << c+1 << " " << (best == C.end() ? -1 : *best+1) << "\n";
       C.insert(best, c);
       if (C.size() > 1) {
         cost += mincost;
       }
     }
+    if (os)  os->close();
   }
 
 #ifdef MEMOPT

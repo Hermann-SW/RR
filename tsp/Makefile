@@ -14,6 +14,9 @@ memopt: greedy.cpp loader.h random_access_list.h tsp_tour.h utils.h RR_greedy.h
 ezxdisp:
 	g++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
 
+tour:
+	g++ -Wall -Wextra -pedantic tour.cpp -o tour
+
 cezxdisp:
 	clang++ -O3 -std=c++20  -Wall -Wextra -pedantic greedy.cpp -o greedy -lstdc++ -lm -Dezxdisp -lezx -lX11
 
@@ -75,4 +78,4 @@ cppcheck9: normalize_tour.cpp
 	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction $<
 
 clean:
-	rm -f load_test greedy
+	rm -f load_test greedy tour
