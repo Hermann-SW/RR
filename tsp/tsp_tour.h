@@ -19,6 +19,9 @@ extern int c_radial;
 extern int r_radial;
 #endif
 int glob_min = 0;
+extern int radc;
+extern int siz;
+extern int nmutations;
 
 template <typename config, typename urn>
 class tsp_tour {
@@ -259,6 +262,18 @@ _stop
 
   void init_dist() {
     rad_nxt = new std::vector<int>[N];
+
+    if (nmutations == 0 && radc >= 0) {
+      for (int to = 0; to < N; ++to) {
+        rad_nxt[radc].push_back(to);
+      }
+
+      Dless.i = radc;
+      Dless.pCC = &CC;
+      std::sort(rad_nxt[radc].begin(), rad_nxt[radc].end(), Dless);
+
+      return;
+    }
 
     for (int from = 0; from < N; ++from) {
       for (int to = 0; to < N; ++to) {

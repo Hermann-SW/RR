@@ -13,7 +13,7 @@
 int nmutations = 100000;
 bool rot270 = false;
 std::string *src = NULL;
-extern int rad;
+extern int radc;
 extern int siz;
 
 template <typename config, typename urn>
@@ -58,8 +58,8 @@ _stop
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
   _sum = 0;
 
-  if (rad >= 0 && siz > 0) {
-    (void) P.draw_rad(T, rad, siz, Us);
+  if (radc >= 0 && siz > 0) {
+    (void) P.draw_rad(T, radc, siz, Us);
     P.recreate(T, Us);
   }
 

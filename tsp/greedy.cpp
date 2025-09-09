@@ -27,7 +27,7 @@
 #include "./RR_greedy.h"
 
 int seed = time(NULL);
-int rad = -1;
+int radc = -1;
 int siz = -1;
 
 void help(const char *argv0) {
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
         seed = atoi(optarg);
         break;
       case 'R':
-        rad = atoi(optarg) - 1;
+        radc = atoi(optarg) - 1;
         break;
       case 'S':
         siz = atoi(optarg);
