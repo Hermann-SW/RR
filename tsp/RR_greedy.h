@@ -13,6 +13,8 @@
 int nmutations = 100000;
 bool rot270 = false;
 std::string *src = NULL;
+extern int rad;
+extern int siz;
 
 template <typename config, typename urn>
 void RR_greedy(const std::string& fname, int seed) {
@@ -55,6 +57,11 @@ _stop
 
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
   _sum = 0;
+
+  if (rad >= 0 && siz > 0) {
+    (void) P.draw_rad(T, rad, siz, Us);
+    P.recreate(T, Us);
+  }
 
 #ifdef ezxdisp
   config rui, old;

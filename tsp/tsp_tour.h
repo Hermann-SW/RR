@@ -31,20 +31,17 @@ class tsp_tour {
   typedef typename config::value_type city_t;
 
   struct {
-#ifdef MEMOPT
-    int16_t* vi;
-#else
-    int* vi;
-#endif
+    int i;
+    std::vector<coord_t> *pCC;
     bool  operator()(int a, int b)  {
-      return vi[a] < vi[b];
+      return dist((*pCC)[i], (*pCC)[a]) < dist((*pCC)[i], (*pCC)[b]);
     }
   } Dless;
 
   tsp_tour(const std::string& fname, double _siz,
                                      double _ran, double _seq, double _rad):
     siz(_siz), ran(_ran), seq(_seq), rad(_rad),
-    cost(0), bcost(0), Dless(), D(NULL), rad_nxt(NULL) {
+    cost(0), bcost(0), Dless(), rad_nxt(NULL) {
     assert(siz >= 0.0 && siz <= 1.0);
     assert(ran+seq+rad == 1.0);
     assert(ran >= 0.0 && seq >= 0.0 && rad >= 0.0);
@@ -102,7 +99,7 @@ class tsp_tour {
     int cst = 0;
     int prev = C.empty() ? -1 : C.back();
     std::for_each(C.begin(), C.end(), [this, &cst, &prev](const int c) {
-                                        cst += D[prev][c]; prev = c;
+                                        cst += dist(CC[prev], CC[c]); prev = c;
                                       });
     return cst;
   }
@@ -110,7 +107,7 @@ class tsp_tour {
   int64_t dist_sum(city_t c) {
     int64_t sum = 0;  // prevent overflow for eg. usa13509
     for (int j = 0; j < N ; ++j) {
-      sum += D[c][j];
+      sum += dist(CC[c], CC[j]);
     }
     return sum;
   }
@@ -127,7 +124,7 @@ class tsp_tour {
   int delta(config& C, city_t c) {
     int prev = C.cyclic_prev(c);
     int succ = C.cyclic_succ(c);
-    return D[prev][succ] - D[prev][c] - D[c][succ];
+    return dist(CC[prev], CC[succ]) - dist(CC[prev], CC[c]) - dist(CC[c], CC[succ]);
   }
 
   void init(config &C, std::pair<urn, urn> &Us) {
@@ -157,8 +154,7 @@ class tsp_tour {
     }
   }
 
-  int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {
-    auto center = mtgen() % C.size();
+  int draw_rad(config& C, int center, int size, std::pair<urn, urn>& Us) {
     msg = "rad(" + i2s(center) + "," + i2s(size) + ")";
     Us.first.clear();
     std::for_each_n(rad_nxt[center].begin(), size, [&C, &Us, this](auto& c) {
@@ -167,6 +163,11 @@ class tsp_tour {
       Us.first.push_back(c);
     });
     return center;
+  }
+
+  int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {
+    auto center = mtgen() % C.size();
+    return draw_rad(C, center, size, Us);
   }
 
   int draw_seq(config& C, int size, std::pair<urn, urn>& Us) {
@@ -237,7 +238,7 @@ _start
       int prev = C.empty() ? -1 : C.back();
       typename config::iterator best = C.end();
       for (typename config::iterator it = C.begin(); it != C.end(); ++it) {
-        int ncost = D[prev][c] + D[c][*it] - D[prev][*it];
+        int ncost = dist(CC[prev], CC[c]) + dist(CC[c], CC[*it]) - dist(CC[prev], CC[*it]);
         if (ncost < mincost) {
           best = it;
           mincost = ncost;
@@ -254,37 +255,20 @@ _stop
     if (os)  os->close();
   }
 
-#ifdef MEMOPT
-  int16_t **D;           // distance matrix
-#else
-  int **D;           // distance matrix
-#endif
-
   std::vector<int> *rad_nxt;     // radial next
 
   void init_dist() {
-#ifdef MEMOPT
-    typedef int16_t *pint;
-#else
-    typedef int *pint;
-#endif
-    D = new pint[N];
     rad_nxt = new std::vector<int>[N];
 
     for (int from = 0; from < N; ++from) {
-#ifdef MEMOPT
-      D[from] = new int16_t[N];
-#else
-      D[from] = new int[N];
-#endif
       for (int to = 0; to < N; ++to) {
-        D[from][to] = dist(CC[from], CC[to]);
         rad_nxt[from].push_back(to);
       }
     }
 
     for (int from = 0; from < N; ++from) {
-      Dless.vi = D[from];
+      Dless.i = from;
+      Dless.pCC = &CC;
       std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
     }
   }

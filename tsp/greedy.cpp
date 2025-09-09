@@ -27,6 +27,8 @@
 #include "./RR_greedy.h"
 
 int seed = time(NULL);
+int rad = -1;
+int siz = -1;
 
 void help(const char *argv0) {
   std::cout << argv0
@@ -40,6 +42,8 @@ void help(const char *argv0) {
   std::cout << "  -m: #mutations\n";
   std::cout << "  -r: rotate 270°\n";
   std::cout << "  -s: seed\n";
+  std::cout << "  -R: center (for initial radial ruin)\n";
+  std::cout << "  -S: size (for initial ruin)\n";
   exit(EXIT_FAILURE);
 }
 
@@ -47,9 +51,9 @@ int main(int argc, char *argv[]) {
   int opt;
 
 #ifdef ezxdisp
-  const char *opts = "dci:hm:rs:";
+  const char *opts = "dci:hm:rs:R:S:";
 #else
-  const char *opts = "i:hm:s:";
+  const char *opts = "i:hm:s:R:S:";
 #endif
 
   while ((opt = getopt(argc, argv, opts)) != -1) {
@@ -78,6 +82,12 @@ int main(int argc, char *argv[]) {
 #endif
       case 's':
         seed = atoi(optarg);
+        break;
+      case 'R':
+        rad = atoi(optarg) - 1;
+        break;
+      case 'S':
+        siz = atoi(optarg);
         break;
       default:
         help(argv[0]);
