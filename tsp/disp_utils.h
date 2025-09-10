@@ -161,10 +161,10 @@ if (!single_display) {
   });
 }
 
-  std::for_each(T.begin(), T.end(), [ret, &e, &P](int i) {
+  std::for_each(T.begin(), T.end(), [ret, mut, &e, &P](int i) {
     std::pair<int, int> c;
     mp(P.C[i].first, P.C[i].second, 0, c);
-    (i == c_radial ? city2a : city)(c, e);
+    (i == c_radial && mut > 0 ? city2a : city)(c, e);
     if (ret != std::numeric_limits<int>::min()) {
       if (!single_display)
         mp(P.C[i].first, P.C[i].second, 2, c);

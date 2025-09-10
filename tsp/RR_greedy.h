@@ -143,6 +143,11 @@ _stop
   P.save_tour(T, seed, nmutations);
 
 #ifdef ezxdisp
+  if (radc >= 0 && siz > 0) {
+    c_radial = radc;
+    r_radial = dist(P.CC[radc], P.CC[P.rad_nxt[radc][siz-1]]);
+  }
+
   config dummy;
   ezx_tours(P, T, O, Us.first, dummy, std::numeric_limits<int>::min(), -1, e);
 
