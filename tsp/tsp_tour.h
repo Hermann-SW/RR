@@ -261,13 +261,20 @@ _stop
     if (os)  os->close();
   }
 
+#ifdef MEMOPT
+  std::vector<int16_t> *rad_nxt;     // radial next
+  std::vector<int16_t> rad_aux;
+#else
   std::vector<int> *rad_nxt;     // radial next
+  std::vector<int> rad_aux;
+#endif
 
   void init_dist() {
-    rad_nxt = new std::vector<int>[N];
 #ifdef MEMOPT
+    rad_nxt = new std::vector<int16_t>[N];
     Dless.vi = new int16_t[N]; 
 #else
+    rad_nxt = new std::vector<int>[N];
     Dless.vi = new int[N]; 
 #endif
 
@@ -278,21 +285,25 @@ _stop
       }
 
       std::sort(rad_nxt[radc].begin(), rad_nxt[radc].end(), Dless);
-
       return;
     }
 
     for (int from = 0; from < N; ++from) {
-      for (int to = 0; to < N; ++to) {
-        rad_nxt[from].push_back(to);
-      }
-    }
-
-    for (int from = 0; from < N; ++from) {
+      rad_aux.clear();
       for (int to = 0; to < N; ++to) {
         Dless.vi[to] = dist(CC[from], CC[to]);
+        rad_aux.push_back(to);
       }
-      std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
+      std::sort(rad_aux.begin(), rad_aux.end(), Dless);
+#ifdef MEMOPT
+      std::vector<int16_t> &ref = rad_nxt[from];
+#else
+      std::vector<int> &ref = rad_nxt[from];
+#endif
+      rad_aux.resize(ceil(siz*N));
+      std::for_each(rad_aux.begin(), rad_aux.end(), [this, &ref](const int c) {
+                                                      ref.push_back(c);
+                                                    });
     }
   }
 
