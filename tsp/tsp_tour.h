@@ -34,10 +34,13 @@ class tsp_tour {
   typedef typename config::value_type city_t;
 
   struct {
-    int i;
-    std::vector<coord_t> *pCC;
+#ifdef MEMOPT
+    int16_t* vi;
+#else
+    int* vi;
+#endif
     bool  operator()(int a, int b)  {
-      return dist((*pCC)[i], (*pCC)[a]) < dist((*pCC)[i], (*pCC)[b]);
+      return vi[a] < vi[b];
     }
   } Dless;
 
@@ -262,14 +265,18 @@ _stop
 
   void init_dist() {
     rad_nxt = new std::vector<int>[N];
+#ifdef MEMOPT
+    Dless.vi = new int16_t[N]; 
+#else
+    Dless.vi = new int[N]; 
+#endif
 
     if (nmutations == 0 && radc >= 0) {
       for (int to = 0; to < N; ++to) {
         rad_nxt[radc].push_back(to);
+        Dless.vi[to] = dist(CC[radc], CC[to]);
       }
 
-      Dless.i = radc;
-      Dless.pCC = &CC;
       std::sort(rad_nxt[radc].begin(), rad_nxt[radc].end(), Dless);
 
       return;
@@ -282,8 +289,9 @@ _stop
     }
 
     for (int from = 0; from < N; ++from) {
-      Dless.i = from;
-      Dless.pCC = &CC;
+      for (int to = 0; to < N; ++to) {
+        Dless.vi[to] = dist(CC[from], CC[to]);
+      }
       std::sort(rad_nxt[from].begin(), rad_nxt[from].end(), Dless);
     }
   }
