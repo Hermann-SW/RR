@@ -34,11 +34,7 @@ class tsp_tour {
   typedef typename config::value_type city_t;
 
   struct {
-#ifdef MEMOPT
-    int16_t* vi;
-#else
     int* vi;
-#endif
     bool  operator()(int a, int b)  {
       return vi[a] < vi[b];
     }
@@ -261,22 +257,12 @@ _stop
     if (os)  os->close();
   }
 
-#ifdef MEMOPT
-  std::vector<int16_t> *rad_nxt;     // radial next
-  std::vector<int16_t> rad_aux;
-#else
   std::vector<int> *rad_nxt;     // radial next
   std::vector<int> rad_aux;
-#endif
 
   void init_dist() {
-#ifdef MEMOPT
-    rad_nxt = new std::vector<int16_t>[N];
-    Dless.vi = new int16_t[N]; 
-#else
     rad_nxt = new std::vector<int>[N];
     Dless.vi = new int[N]; 
-#endif
 
     if (nmutations == 0 && radc >= 0) {
       for (int to = 0; to < N; ++to) {
@@ -295,11 +281,7 @@ _stop
         rad_aux.push_back(to);
       }
       std::sort(rad_aux.begin(), rad_aux.end(), Dless);
-#ifdef MEMOPT
-      std::vector<int16_t> &ref = rad_nxt[from];
-#else
       std::vector<int> &ref = rad_nxt[from];
-#endif
       rad_aux.resize(ceil(siz*N));
       std::for_each(rad_aux.begin(), rad_aux.end(), [this, &ref](const int c) {
                                                       ref.push_back(c);

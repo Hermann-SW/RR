@@ -53,9 +53,6 @@ int geo(const coord_t& from, const coord_t& to) {
   double lat = deg2rad(to.first);
   double lof = deg2rad(from.second);
   double lot = deg2rad(to.second);
-#ifdef MEMOPT
-// maximal distance is 20,000 — no assert neccessary
-#endif
   double RRR = 6378.388;
   double q1 = cos(lof - lot);
   double q2 = cos(laf - lat);
