@@ -26,18 +26,12 @@ int euc_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
   double yd = from.second - to.second;
   int d = nint(sqrt(xd*xd + yd*yd));
-#ifdef MEMOPT
-  assert(d <= 32767);
-#endif
   return d;
 }
 int ceil_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
   double yd = from.second - to.second;
   double d = ceil(sqrt(xd*xd + yd*yd));
-#ifdef MEMOPT
-  assert(d <= 32767);
-#endif
   return static_cast<int>(d);
 }
 int att(const coord_t& from, const coord_t& to) {
@@ -46,9 +40,6 @@ int att(const coord_t& from, const coord_t& to) {
   double rij = sqrt((xd*xd + yd*yd) / 10.0);
   double tij = nint(rij);
   double d = tij < rij ? tij + 1 : tij;
-#ifdef MEMOPT
-  assert(abs(d) <= 32767);
-#endif
   return static_cast<int>(d);
 }
 double deg2rad(double xy) {
