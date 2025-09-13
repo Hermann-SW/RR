@@ -36,14 +36,14 @@ void help(const char *argv0) {
                " [-s seed] fname\n";
   std::cout << "  -d: single display\n";
   std::cout << "  -c: small city display\n";
-  std::cout << "  -i: file.tour or "\
-               "radial_min/radial_max/radial_ran for RR_all()\n";
+  std::cout << "  -i: file.tour\n";
   std::cout << "  -h: this help\n";
   std::cout << "  -m: #mutations\n";
   std::cout << "  -r: rotate 270°\n";
   std::cout << "  -s: seed\n";
   std::cout << "  -R: center (for initial radial ruin)\n";
   std::cout << "  -S: size (for initial ruin)\n";
+  std::cout << "  -N: file.nxt (read or write rad_nxt[])\n";
   exit(EXIT_FAILURE);
 }
 
@@ -51,9 +51,9 @@ int main(int argc, char *argv[]) {
   int opt;
 
 #ifdef ezxdisp
-  const char *opts = "dci:hm:rs:R:S:";
+  const char *opts = "dci:hm:rs:R:S:N:";
 #else
-  const char *opts = "i:hm:s:R:S:";
+  const char *opts = "i:hm:s:R:S:N:";
 #endif
 
   while ((opt = getopt(argc, argv, opts)) != -1) {
@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'S':
         siz = atoi(optarg);
+        break;
+      case 'N':
+        nxt = new std::string(optarg);
         break;
       default:
         help(argv[0]);

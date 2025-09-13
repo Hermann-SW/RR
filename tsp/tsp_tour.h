@@ -22,6 +22,7 @@ int glob_min = 0;
 extern int radc;
 extern int siz;
 extern int nmutations;
+std::string *nxt = NULL;
 
 template <typename config, typename urn>
 class tsp_tour {
@@ -126,7 +127,8 @@ class tsp_tour {
   int delta(config& C, city_t c) {
     int prev = C.cyclic_prev(c);
     int succ = C.cyclic_succ(c);
-    return dist(CC[prev], CC[succ]) - dist(CC[prev], CC[c]) - dist(CC[c], CC[succ]);
+    return dist(CC[prev], CC[succ]) - dist(CC[prev],
+                CC[c]) - dist(CC[c], CC[succ]);
   }
 
   void init(config &C, std::pair<urn, urn> &Us) {
@@ -240,7 +242,8 @@ _start
       int prev = C.empty() ? -1 : C.back();
       typename config::iterator best = C.end();
       for (typename config::iterator it = C.begin(); it != C.end(); ++it) {
-        int ncost = dist(CC[prev], CC[c]) + dist(CC[c], CC[*it]) - dist(CC[prev], CC[*it]);
+        int ncost = dist(CC[prev], CC[c]) + dist(CC[c],
+                         CC[*it]) - dist(CC[prev], CC[*it]);
         if (ncost < mincost) {
           best = it;
           mincost = ncost;
@@ -262,7 +265,7 @@ _stop
 
   void init_dist() {
     rad_nxt = new std::vector<int>[N];
-    Dless.vi = new int[N]; 
+    Dless.vi = new int[N];
 
     if (nmutations == 0 && radc >= 0) {
       for (int to = 0; to < N; ++to) {
@@ -272,6 +275,28 @@ _stop
 
       std::sort(rad_nxt[radc].begin(), rad_nxt[radc].end(), Dless);
       return;
+    }
+
+    if (nxt) {
+      std::ifstream fnxt(*nxt);
+
+      if (fnxt.is_open()) {
+        for (int from = 0; from < N; ++from) {
+          for (int to = 0; to < ceil(siz*N); ++to) {
+            rad_nxt[from].push_back(to);
+          }
+          fnxt.read(reinterpret_cast<char*>(rad_nxt[from].data()),
+                    ceil(siz*N)*sizeof(int));
+          assert(fnxt.gcount() == ceil(siz*N)*sizeof(int));
+        }
+        assert(!fnxt.eof());
+        char buf[1];
+        fnxt.read(buf, 1);
+        assert(fnxt.eof());
+
+        fnxt.close();
+        return;
+      }
     }
 
     for (int from = 0; from < N; ++from) {
@@ -286,6 +311,17 @@ _stop
       std::for_each(rad_aux.begin(), rad_aux.end(), [this, &ref](const int c) {
                                                       ref.push_back(c);
                                                     });
+    }
+
+    if (nxt) {
+      std::ofstream onxt(*nxt);
+
+      for (int from = 0; from < N; ++from) {
+        onxt.write(reinterpret_cast<char*>(rad_nxt[from].data()),
+                   ceil(siz*N)*sizeof(int));
+      }
+
+      onxt.close();
     }
   }
 
