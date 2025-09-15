@@ -35,8 +35,8 @@ void RR_greedy(const std::string& fname, int seed) {
   }
 
   ezx_tours0(P, e);
-  if (P.N > 50000)
-     (void) ezx_pushbutton(e, NULL, NULL);
+//  if (P.N > 50000)
+//     (void) ezx_pushbutton(e, NULL, NULL);
 #endif
 _start
   P.init_dist();
