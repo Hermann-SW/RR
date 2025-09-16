@@ -155,6 +155,9 @@ _stop
   if (radc >= 0 && rsiz > 0) {
     c_radial = radc;
     r_radial = dist(P.CC[radc], P.CC[P.rad_nxt[radc][rsiz-1]]);
+  } else if (radc >= 0 && rsiz < -1) {
+    c_radial = radc;
+    r_radial = dist(P.CC[radc], P.CC[P.rad_nxt[radc][abs(rsiz)-1]]);
   }
 
   config dummy;
