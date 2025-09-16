@@ -102,7 +102,7 @@ if (!single_display) {
   if (ret != std::numeric_limits<int>::max() && ret >= 0) {
     std::pair<int, int> c;
     mp(P.C[ret].first, P.C[ret].second, 0, c);
-    //int r = P.D[ret][P.rad_nxt[ret][U.size()-1]];
+    // int r = P.D[ret][P.rad_nxt[ret][U.size()-1]];
     int r = dist(P.CC[ret], P.CC[P.rad_nxt[ret][U.size()-1]]);
     ezx_circle_2d(e, c.first, c.second, r/scale, &ezx_orange, 2);
     if (!single_display)
