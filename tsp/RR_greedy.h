@@ -14,13 +14,16 @@ int nmutations = 100000;
 bool rot270 = false;
 std::string *src = NULL;
 extern int radc;
-extern int siz;
+extern int rsiz;
+extern bool force_irr;
 
 template <typename config, typename urn>
 void RR_greedy(const std::string& fname, int seed) {
   std::pair<urn, urn> Us;
   config T;
   tsp_tour<config, urn> P(fname, 0.3,  1.0/3, 1.0/3, 1.0/3);
+
+  if (radc >= 0 && rsiz > 0 && force_irr)  assert(rsiz <= ceil(P.siz*P.N));
 
 #ifdef ezxdisp
   ezx_t *e;
@@ -58,9 +61,11 @@ _stop
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
   _sum = 0;
 
-  if (radc >= 0 && siz > 0) {
-    (void) P.draw_rad(T, radc, siz, Us);
+  if (radc >= 0 && rsiz > 0) {
+    (void) P.draw_rad(T, radc, rsiz, Us);
     P.recreate(T, Us);
+
+    if (force_irr)  P.force_irr(Us);
   }
 
 #ifdef ezxdisp
@@ -132,8 +137,12 @@ _stop
   std::cout << "]\n";
 #endif
 
-  std::sort(Us.second.begin(), Us.second.end());
-  for (int i = 0; i < P.N; ++i)  assert(Us.second[i] == i);
+  if (P.N == P.NN) {
+    std::sort(Us.second.begin(), Us.second.end());
+    for (int i = 0; i < P.N; ++i)  assert(Us.second[i] == i);
+  } else {
+    assert(Us.second.size() == static_cast<unsigned>(rsiz));
+  }
 
   config S = T;
   S.sort();
@@ -143,9 +152,9 @@ _stop
   P.save_tour(T, seed, nmutations);
 
 #ifdef ezxdisp
-  if (radc >= 0 && siz > 0) {
+  if (radc >= 0 && rsiz > 0) {
     c_radial = radc;
-    r_radial = dist(P.CC[radc], P.CC[P.rad_nxt[radc][siz-1]]);
+    r_radial = dist(P.CC[radc], P.CC[P.rad_nxt[radc][rsiz-1]]);
   }
 
   config dummy;

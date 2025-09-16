@@ -20,14 +20,14 @@ extern int r_radial;
 #endif
 int glob_min = 0;
 extern int radc;
-extern int siz;
+extern int rsiz;
 extern int nmutations;
 std::string *nxt = NULL;
 
 template <typename config, typename urn>
 class tsp_tour {
  public:
-  int N;
+  int N, NN;
   const double siz, ran, seq, rad;
   int cost, bcost;
   std::string msg;
@@ -54,7 +54,9 @@ class tsp_tour {
 
     assert(C.size() == Opt.size());
 
-    N = C.size();
+    N = NN = C.size();
+
+    for (int i = 0; i < N; ++i)  active.push_back(1);
 
 #ifdef ezxdisp
     if (rot270) {
@@ -97,6 +99,33 @@ class tsp_tour {
 #endif
   }
 
+  void force_irr(std::pair<urn, urn> &Us) {
+    NN = rsiz;
+
+    Us.second.clear();
+    std::for_each_n(rad_nxt[radc].begin(), rsiz, [&Us, this](auto& c) {
+      Us.second.push_back(c);
+      ++active[c];                 // active[c]==2 for c in IRR
+    });
+    for (int i = 0; i < N; ++i) {  // active[] in {1,2} -> active in {0,1}
+      --active[i];
+    }
+
+    for (unsigned i = 0; i < Us.second.size(); ++i) {
+      city_t from = Us.second[i];
+      if (from == radc)  continue;
+
+      std::vector<city_t> &ref = rad_nxt[from];
+      ref.clear();
+      std::for_each(Us.second.begin(), Us.second.end(),
+                    [this, &ref, from](auto& to) {
+                      ref.push_back(to);
+                      Dless.vi[to] = dist(CC[from], CC[to]);
+                    });
+      std::sort(ref.begin(), ref.end(), Dless);
+      assert(ref[0] == from);
+    }
+  }
 
   int Cost(config& C) {
     int cst = 0;
@@ -149,6 +178,7 @@ class tsp_tour {
     } else {
       std::vector<city_t> vc;
       load<city_t>(*src, vc);
+      assert(static_cast<unsigned>(N) == vc.size());
       std::for_each(vc.begin(), vc.end(), [&C](city_t i) {
         city_t ct = i - 1;
         C.push_back(ct);
@@ -171,6 +201,7 @@ class tsp_tour {
 
   int draw_rad(config& C, int size, std::pair<urn, urn>& Us) {
     auto center = mtgen() % C.size();
+    if (N != NN)  center = Us.second[mtgen() % Us.second.size()];
     return draw_rad(C, center, size, Us);
   }
 
@@ -181,6 +212,7 @@ class tsp_tour {
     int ret = *it;
     while (size-- > 0 && it != C.end()) {
       int c = *it;
+      if (!active[c])  continue;
       cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
@@ -188,6 +220,7 @@ class tsp_tour {
     it = C.begin();
     while (size-- > 0) {
       int c = *it;
+      if (!active[c])  continue;
       cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
@@ -198,7 +231,7 @@ class tsp_tour {
   int draw_ran(config& C, int size,
                std::pair<urn, urn>& Us) {
     assert(Us.first.size() == 0);
-    assert(Us.second.size() == static_cast<unsigned>(N));
+    assert(Us.second.size() == static_cast<unsigned>(NN));
     msg = "ran(" + i2s(size) + ")";
     for (; size > 0; --size) {
       int r = edraw(Us.second);
@@ -228,7 +261,7 @@ class tsp_tour {
   -  -(1+start) city for seq
 */
   int ruin(config& C, std::pair<urn, urn>& Us) {
-    return draw(C, ceil(dis(mtgen) * (siz * N)), Us);
+    return draw(C, ceil(dis(mtgen) * (siz * NN)), Us);
   }
 
 
@@ -343,5 +376,6 @@ _stop
   std::vector<coord_t> C;
   std::vector<coord_t> CC;
   std::vector<city_t> Opt;
+  std::vector<uint8_t> active;
 };
 #endif  // TSP_TSP_TOUR_H_

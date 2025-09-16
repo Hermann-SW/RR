@@ -28,7 +28,8 @@
 
 int seed = time(NULL);
 int radc = -1;
-int siz = -1;
+int rsiz = -1;
+bool force_irr = false;
 
 void help(const char *argv0) {
   std::cout << argv0
@@ -44,6 +45,7 @@ void help(const char *argv0) {
   std::cout << "  -R: center (for initial radial ruin)\n";
   std::cout << "  -S: size (for initial ruin)\n";
   std::cout << "  -N: file.nxt (read or write rad_nxt[])\n";
+  std::cout << "  -F: for optimization inside initial radial ruin only\n";
   exit(EXIT_FAILURE);
 }
 
@@ -51,9 +53,9 @@ int main(int argc, char *argv[]) {
   int opt;
 
 #ifdef ezxdisp
-  const char *opts = "dci:hm:rs:R:S:N:";
+  const char *opts = "dci:hm:rs:R:S:N:F";
 #else
-  const char *opts = "i:hm:s:R:S:N:";
+  const char *opts = "i:hm:s:R:S:N:F";
 #endif
 
   while ((opt = getopt(argc, argv, opts)) != -1) {
@@ -87,10 +89,13 @@ int main(int argc, char *argv[]) {
         radc = atoi(optarg) - 1;
         break;
       case 'S':
-        siz = atoi(optarg);
+        rsiz = atoi(optarg);
         break;
       case 'N':
         nxt = new std::string(optarg);
+        break;
+      case 'F':
+        force_irr = true;
         break;
       default:
         help(argv[0]);
