@@ -11,7 +11,6 @@
 #endif
 
 int nmutations = 100000;
-bool rot270 = false;
 std::string *src = NULL;
 extern int radc;
 extern int rsiz;

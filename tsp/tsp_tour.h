@@ -13,7 +13,8 @@
 #ifdef ezxdisp
 extern double scale;
 extern bool single_display;
-extern bool rot270;
+bool rot270 = false;
+double rzoom = 1.0;
 extern int wid, hei;
 extern int c_radial;
 extern int r_radial;
@@ -88,6 +89,9 @@ class tsp_tour {
       } else {
         scale = dx/wid;
       }
+      scale /= rzoom;
+      xmin += dx/((2.0/(rzoom-1))*rzoom);
+      ymin += dy/((2.0/(rzoom-1))*rzoom);
     }
     CC = C;
     for (int i = 0; i < static_cast<int>(C.size()); ++i) {

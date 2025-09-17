@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   int opt;
 
 #ifdef ezxdisp
-  const char *opts = "dci:hm:rs:R:S:N:F";
+  const char *opts = "dci:hm:rs:R:S:N:F:z:";
 #else
   const char *opts = "i:hm:s:R:S:N:F";
 #endif
@@ -80,6 +80,9 @@ int main(int argc, char *argv[]) {
 #ifdef ezxdisp
       case 'r':
         rot270 = true;
+        break;
+      case 'z':
+        rzoom = atof(optarg);
         break;
 #endif
       case 's':
