@@ -65,6 +65,9 @@ _stop
     P.recreate(T, Us);
 
     if (force_irr)  P.force_irr(Us);
+  } else if (radc >= 0 && rsiz < -1 && force_irr) {
+    rsiz = -rsiz;
+    P.force_irr(Us);
   }
 
 #ifdef ezxdisp
