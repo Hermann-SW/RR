@@ -18,12 +18,14 @@
 #include <sstream>
 #include <iostream>
 
+#ifdef CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_2_algorithms.h>
 #include <iostream>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef K::Point_2 Point_2;
+#endif
 
 #ifndef TSP_UTILS_H_
 #define TSP_UTILS_H_
@@ -429,6 +431,7 @@ _stop
 
   errlog(0, P.cost, "RR_all() [" + i2s(_sum) + "us]");
 
+#ifdef CGAL
   Point_2 *points = new Point_2[P.CC.size()];
   int i=0;
   std::for_each(T.begin(), T.end(), [&i, &points, &P](const int c) {
@@ -439,6 +442,7 @@ _stop
   if (!CGAL::is_simple_2(points, points+P.CC.size())) {
     std::cerr << "Error polygon is not simple\n";
   }
+#endif
 }
 #endif  // TSP_RR_GREEDY_H_
 
