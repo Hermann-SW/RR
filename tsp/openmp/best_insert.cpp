@@ -25,15 +25,15 @@ inline int delta(int s, int i) {
   return dist(old, s) + dist(s, i) - dist(old, i);
 }
 
+const int distmax = 30000;
+inline int workaround(int i)  { return 3*distmax - i; }
 
-struct Compare { int val; };
-#ifdef DOMAX
+
+struct Compare { int val; int pos; };
 #pragma omp declare reduction(maximum : \
   struct Compare : omp_out = omp_in.val > omp_out.val ? omp_in : omp_out)
-#else
 #pragma omp declare reduction(minimum : \
   struct Compare : omp_out = omp_in.val < omp_out.val ? omp_in : omp_out)
-#endif
 
 
 int main() {
@@ -54,31 +54,37 @@ int main() {
     succ[pred[s]] = succ[s]; pred[succ[s]] = pred[s];  // remove(s)
 
     struct Compare cmp;
-    cmp.val = delta(s, s == 0 ? 1 : 0);
+    cmp.val = 0;
+    cmp.pos = -1;
+
 #ifdef DOMAX
     #pragma omp parallel for reduction(maximum:cmp)
 #else
-    #pragma omp parallel for reduction(minimum:cmp)
+    // workaround
+    #pragma omp parallel for reduction(maximum:cmp)
 #endif
     for (int i=0; i < N; ++i) {
       if (i == s)  continue;
 
       int ncost = delta(s, i);
 #ifdef DOMAX
-      if (ncost > cmp.val)  cmp.val = ncost;
+      if (ncost > cmp.val)  { cmp.val = ncost; cmp.pos = i; }
 #else
-      if (ncost < cmp.val)  cmp.val = ncost;
+      if (workaround(ncost) > cmp.val) {
+        cmp.val = workaround(ncost);
+        cmp.pos = i;
+      }
 #endif
     }
 
-//    assert(cmp.val == delta(s, succ[s]));
-
-//    std::cout << "cmp.val " << cmp.val << "\n";
 #ifdef DOMAX
     assert(cmp.val == mia[s][1]);
 #else
+    cmp.val = workaround(cmp.val);
     assert(cmp.val == mia[s][0]);
+    assert(cmp.val == delta(s, succ[s]));
 #endif
+    assert(cmp.val == delta(s, cmp.pos));
 
     succ[pred[s]] = s; pred[succ[s]] = s;              // reinsert(s)
   }
