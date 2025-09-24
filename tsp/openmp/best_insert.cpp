@@ -26,9 +26,6 @@ inline int delta(int s, int i) {
   return dist(old, s) + dist(s, i) - dist(old, i);
 }
 
-const int distmax = 30000;
-inline int workaround(int i)  { return 3*distmax - i; }
-
 
 int main() {
   for (int i=0; i < N; ++i)  ml[i]-=1;  // make mona-lisa100K.opt.tour 0-based
