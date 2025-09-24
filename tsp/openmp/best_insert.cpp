@@ -90,12 +90,7 @@ int main() {
     assert(min == delta(s, succ[s]));
     assert(min == delta(s, pos));
 
-#ifdef DBG
-    if (scnt[s] != cnt)
-      std::cerr << s << " sct[s]=" << scnt[s] << " cnt=" << cnt << "\n";
-#else
     assert(cnt == scnt[s]);
-#endif
 
     succ[pred[s]] = s; pred[succ[s]] = s;              // reinsert(s)
   }
