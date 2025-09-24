@@ -51,13 +51,15 @@ int main() {
     int pos = -1;
     int cnt = 0;
 
-    #pragma omp parallel
-    {
-      int min_local = min;
-      int pos_local = pos;
-      int cnt_local = cnt;
+    int min_local, pos_local, cnt_local;
 
-      #pragma omp for nowait
+    #pragma omp parallel private(min_local, pos_local, cnt_local)
+    {
+      min_local = min;
+      pos_local = pos;
+      cnt_local = cnt;
+
+      #pragma omp for
       for (int i=0; i < N; ++i) {
         if (i == s)  continue;
 
