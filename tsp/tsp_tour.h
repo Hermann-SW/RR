@@ -216,7 +216,7 @@ class tsp_tour {
     int ret = *it;
     while (size-- > 0 && it != C.end()) {
       int c = *it;
-      if (!active[c])  continue;
+      if (!active[c])  { ++size; continue; }
       cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
@@ -224,7 +224,7 @@ class tsp_tour {
     it = C.begin();
     while (size-- > 0) {
       int c = *it;
-      if (!active[c])  continue;
+      if (!active[c])  { ++size; continue; }
       cost += delta(C, c);
       it = C.erase(it);
       Us.first.push_back(c);
