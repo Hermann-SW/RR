@@ -22,14 +22,14 @@ void collatz(mpz_class& r, mpz_class& l, int s, mpz_class mx) {
   r = mx;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
   assert(argc == 2);
-  int N = atoi(argv[1]);
   mpz_class mx = 1;
   mpz_class lmx = 1;
 
   #pragma omp parallel
   {
+    int N = atoi(argv[1]);
     mpz_class mx_local = mx;
     mpz_class lmx_local = lmx;
 
