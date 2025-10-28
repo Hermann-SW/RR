@@ -92,6 +92,21 @@ Looks like this:
 Same command with "-d" option for single display (click on image for 1:1 display):  
 ![res/usa13509.1disp.png](res/usa13509.1disp.png)
 
+
+100,000 cities Mona Lisa TSP Challange is discussed [here](https://github.com/Hermann-SW/RR?tab=readme-ov-file#mona-lisa-tsp-challenge):  
+![res/mona-lisa100K.1x1pix.png](res/mona-lisa100K.1x1pix.png)  
+
+
+
+You can "just display" (optimal) solution (or a saved solution) with specifying any city with (eg. -R 1) and size 0 (-S 0):   
+```
+./greedy ../data/tsp/extra/mona-lisa100K -m 0 -R 1 -S 0 -d -c -i ../data/tsp/extra/monalisa_5758831.tour
+```
+Display of the solution starts immediately, and and mouse click ends then in case of 0 mutations (-m 0).
+![res/mona-lisa100K.part.png](res/mona-lisa100K.part.png)
+
+
+
 ### radial_min
 
 Alternatively to random ```RR_all()```, the "-i" option allows to specify one of three "radial_..." modes for initial configuration creation. Below highlights the city with minimal sum of distances to all other cities. The circle radius is avarage distance of all cities to the chosen city. ```RR_all()``` inserts the cities not randomly in this mode, but in increasing distance from the determined city. Each city gets inserted with "best insert" as done with random ```RR_all()```:  
@@ -99,7 +114,6 @@ Alternatively to random ```RR_all()```, the "-i" option allows to specify one of
 pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_min ../data/tsp/usa13509
 ```
 ![res/usa13509.1disp.radial_min.png](res/usa13509.1disp.radial_min.png)
-
 Just for comparison, here the picture for ```radial_max```:  
 ```
 pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_max ../data/tsp/usa13509
@@ -108,6 +122,3 @@ pi@raspberrypi5:~/RR/tsp $ ./greedy -m 0 -c -r -d -i radial_max ../data/tsp/usa1
 
 Both initial tour lengths are roughly the same, and the same as a typical random ```RR_all()``` tour length.
 
-100,000 cities Mona Lisa TSP Challange is discussed [here](https://github.com/Hermann-SW/RR?tab=readme-ov-file#mona-lisa-tsp-challenge):  
-![res/mona-lisa100K.1x1pix.png](res/mona-lisa100K.1x1pix.png)  
-![res/mona-lisa100K.part.png](res/mona-lisa100K.part.png)
