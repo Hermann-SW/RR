@@ -1,5 +1,5 @@
-NAME : burma14.tour
-COMMENT : Optimum tour for burma14.tsp (Length 3323)
+NAME : brd14051.opt.tour
+COMMENT : trivial tour for brd14051.opt.tsp (Length 23587594)
 TYPE : TOUR
 DIMENSION : 14051
 TOUR_SECTION  
