@@ -38,7 +38,7 @@ hermann@8840hs:~/RR/tsp/openmp$
 
 const int N = 100000;  // mona-list100K.tsp, divisible by 32!
 
-#define REPEAT(block) for(int i = 0; i < 500000; ++i) { block }
+#define REPEAT(block) for (int i = 0; i < 500000; ++i) { block }
 
 alignas(64) int16_t xy_even[N] = {0};
 alignas(64) int16_t xy_odd[N] = {0};
@@ -74,7 +74,7 @@ REPEAT(
 )
 
     sum[thread_id] = _mm512_reduce_add_epi32(acc);
-  }  // omp parallel 
+  }  // omp parallel
 
   for (int i = 1; i < total_threads; ++i) {
     sum[0] += sum[i];
