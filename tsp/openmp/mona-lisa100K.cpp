@@ -8,13 +8,24 @@ echo off | sudo tee /sys/devices/system/cpu/smt/control
 echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid
 perf stat -a -e fp_ops_retired_by_width.pack_512_uops_retired,cycles,instructions,task-clock ./$f
 
-memory layout fixed, now sequential verification succeeds:
+- single omp thread faster than 8
+- sequential without avx512 slower than single omp thread only after
+  repeating the computations 500,000 times in new REPEAT(block)
+- maybe needed addition of sqrt for TSP best insert will make the difference
 
-hermann@8840hs:~/RR/tsp/openmp$ ./$f
+hermann@8840hs:~/RR/tsp/openmp$ OMP_NUM_THREADS=1 ./$f
+Starting benchmark(s) using 1 threads...
+... completed
+Execution Time: 1.30092 seconds
+Sum of two sqs: 190899739
+Execution Time: 3.16036 seconds
+sequential: 190899739
+hermann@8840hs:~/RR/tsp/openmp$ OMP_NUM_THREADS=8 ./$f
 Starting benchmark(s) using 8 threads...
 ... completed
-Execution Time: 0.00121104 seconds
+Execution Time: 2.00539 seconds
 Sum of two sqs: 190899739
+Execution Time: 3.18885 seconds
 sequential: 190899739
 hermann@8840hs:~/RR/tsp/openmp$
 */
@@ -26,6 +37,8 @@ hermann@8840hs:~/RR/tsp/openmp$
 #include "../../data/tsp/extra/mona-lisa100K.opt.h"
 
 const int N = 100000;  // mona-list100K.tsp, divisible by 32!
+
+#define REPEAT(block) for(int i = 0; i < 500000; ++i) { block }
 
 alignas(64) int16_t xy_even[N] = {0};
 alignas(64) int16_t xy_odd[N] = {0};
@@ -43,8 +56,10 @@ void bench1() {
   #pragma omp parallel
   {
     int thread_id = omp_get_thread_num();
-
     __m512i acc = _mm512_setzero_si512();
+
+REPEAT(
+    acc = _mm512_setzero_si512();
 
     for (int i = 0; i < N; i+=32) {
       __m512i a = _mm512_load_si512((const __m512i*)(xy_even+i));
@@ -56,9 +71,10 @@ void bench1() {
       // Resolves 32 pairs of s16 down to 16 lanes of s32
       acc = _mm512_dpwssd_epi32(acc, dxy, dxy);
     }
+)
 
     sum[thread_id] = _mm512_reduce_add_epi32(acc);
-  }
+  }  // omp parallel 
 
   for (int i = 1; i < total_threads; ++i) {
     sum[0] += sum[i];
@@ -74,7 +90,11 @@ void bench1() {
 }
 
 void sequential() {
+  auto start_time = std::chrono::high_resolution_clock::now();
   int64_t sum = 0;
+
+REPEAT(
+  sum = 0;
   for (int i = 0; i < N; i+=32) {
     for (int j = 0; j < 32; j+=2) {
       const int16_t dx = xy_even[i+j] - xy_odd[i+j];
@@ -82,6 +102,12 @@ void sequential() {
       sum += (dx*dx + dy*dy);
     }
   }
+)
+
+  std::chrono::duration<double> duration =
+    std::chrono::high_resolution_clock::now() - start_time;
+
+  std::cout << "Execution Time: " << duration.count() << " seconds\n";
   std::cout << "sequential: " << sum << "\n";
 }
 
