@@ -73,20 +73,8 @@ void bench1() {
   std::cout << "Sum of two sqs: " << sum[0] << "\n";
 }
 
-int main() {
-  for (int i = 0; i < N; i+=2) {
-    xy_even[i] = opt[i][0];
-    xy_odd[i] = opt[i+1][0];
-    xy_even[i+1] = opt[i][1];
-    xy_odd[i+1] = opt[i+1][1];
-  }
-
-  std::cout << "Starting benchmark(s) using "
-            << omp_get_max_threads() << " threads...\n";
-
-  bench1();
-
-  int32_t sum = 0;
+void sequential() {
+  int64_t sum = 0;
   for (int i = 0; i < N; i+=32) {
     for (int j = 0; j < 32; j+=2) {
       const int16_t dx = xy_even[i+j] - xy_odd[i+j];
@@ -95,6 +83,20 @@ int main() {
     }
   }
   std::cout << "sequential: " << sum << "\n";
+}
+
+int main() {
+  for (int i = 0; i < N; i+=2) {
+    xy_even[i+0] = opt[i+0][0];  xy_even[i+1] = opt[i+0][1];
+     xy_odd[i+0] = opt[i+1][0];   xy_odd[i+1] = opt[i+1][1];
+  }
+
+  std::cout << "Starting benchmark(s) using "
+            << omp_get_max_threads() << " threads...\n";
+
+  bench1();
+
+  sequential();
 
   return 0;
 }
