@@ -46,10 +46,6 @@ const int N = 100000;  // mona-list100K.tsp, divisible by 32!
 alignas(64) int16_t xy_even[N] = {0};
 alignas(64) int16_t xy_odd[N] = {0};
 
-int32_t horizontal_add_s32(__m512i v) {
-  return _mm512_reduce_add_epi32(v);
-}
-
 #pragma omp declare reduction(v512_add : __m512i : \
     omp_out = _mm512_add_epi32(omp_out, omp_in)) \
     initializer(omp_priv = _mm512_setzero_si512())
@@ -85,48 +81,34 @@ REPEAT(
   std::cout << "Sum of two sqs: " << sum << "\n";
 }
 
+#define SEQUENTIAL                                                                                                         \
+  auto start_time = std::chrono::high_resolution_clock::now();         \
+  int64_t sum = 0;                                                     \
+                                                                       \
+REPEAT(                                                                \
+  sum = 0;                                                             \
+  for (int i = 0; i < N; i+=32) {                                      \
+    for (int j = 0; j < 32; j+=2) {                                    \
+      const int16_t dx = xy_even[i+j] - xy_odd[i+j];                   \
+      const int16_t dy = xy_even[i+j+1] - xy_odd[i+j+1];               \
+      sum += (dx*dx + dy*dy);                                          \
+    }                                                                  \
+  }                                                                    \
+)                                                                      \
+                                                                       \
+  std::chrono::duration<double> duration =                             \
+    std::chrono::high_resolution_clock::now() - start_time;            \
+                                                                       \
+  std::cout << "Execution Time: " << duration.count() << " seconds\n";
+
 __attribute__((target("no-avx")))
 void sequential_noavx() {
-  auto start_time = std::chrono::high_resolution_clock::now();
-  int64_t sum = 0;
-
-REPEAT(
-  sum = 0;
-  for (int i = 0; i < N; i+=32) {
-    for (int j = 0; j < 32; j+=2) {
-      const int16_t dx = xy_even[i+j] - xy_odd[i+j];
-      const int16_t dy = xy_even[i+j+1] - xy_odd[i+j+1];
-      sum += (dx*dx + dy*dy);
-    }
-  }
-)
-
-  std::chrono::duration<double> duration =
-    std::chrono::high_resolution_clock::now() - start_time;
-
-  std::cout << "Execution Time: " << duration.count() << " seconds\n";
+  SEQUENTIAL
   std::cout << "sequent. noavx: " << sum << "\n";
 }
 
 void sequential() {
-  auto start_time = std::chrono::high_resolution_clock::now();
-  int64_t sum = 0;
-
-REPEAT(
-  sum = 0;
-  for (int i = 0; i < N; i+=32) {
-    for (int j = 0; j < 32; j+=2) {
-      const int16_t dx = xy_even[i+j] - xy_odd[i+j];
-      const int16_t dy = xy_even[i+j+1] - xy_odd[i+j+1];
-      sum += (dx*dx + dy*dy);
-    }
-  }
-)
-
-  std::chrono::duration<double> duration =
-    std::chrono::high_resolution_clock::now() - start_time;
-
-  std::cout << "Execution Time: " << duration.count() << " seconds\n";
+  SEQUENTIAL
   std::cout << "sequential    : " << sum << "\n";
 }
 
