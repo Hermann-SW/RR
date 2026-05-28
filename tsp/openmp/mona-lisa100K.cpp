@@ -81,6 +81,13 @@ REPEAT(
   std::cout << "Sum of two sqs: " << sum << "\n";
 }
 
+/*
+   I tried
+   - always inline
+   - template functions
+   - lambdas
+   without success, keeing macro as that works.
+*/
 #define SEQUENTIAL                                                                                                         \
   auto start_time = std::chrono::high_resolution_clock::now();         \
   int64_t sum = 0;                                                     \
