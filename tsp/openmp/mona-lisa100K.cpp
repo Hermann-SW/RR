@@ -32,6 +32,7 @@ Execution Time: 6.8669 seconds
 sequent. noavx: 190899739
 hermann@8840hs:~/RR/tsp/openmp$
 */
+#include <math.h>
 #include <omp.h>
 #include <inttypes.h>
 #include <immintrin.h>
@@ -119,6 +120,74 @@ void sequential() {
   std::cout << "sequential    : " << sum << "\n";
 }
 
+void check_inverse_sqrt14() {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  alignas(64) int32_t tgt[16] = {0};
+  alignas(64) float tgtf[16] = {0};
+
+  alignas(64) int16_t xy_even2[2*N] = {0};
+
+  for(int k = 0; k < N; ++k) {
+    xy_even2[2*k] = opt[k][0]; xy_even2[2*k+1] = opt[k][1];
+  }
+
+  long cnt = 0;
+  std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
+  std::cout.precision(30);
+      __m512 half = _mm512_set1_ps(0.5f);
+
+  #pragma omp parallel for
+  for (int i = 0; i < N; ++i) {
+    for(int k = 0; k < 32; k += 2) {
+      xy_odd[k] = opt[i][0]; xy_odd[k+1] = opt[i][1];
+    }
+    __m512i b = _mm512_load_si512((const __m512i*)(xy_odd));
+
+    for (int j = 0; j < 2*N; j += 32) {
+      __m512i a = _mm512_load_si512((const __m512i*)(xy_even2+j));
+
+      __m512i dxy = _mm512_sub_epi16(a, b);
+
+      __m512i acc = _mm512_setzero_si512();
+
+      acc = _mm512_dpwssd_epi32(acc, dxy, dxy);
+
+      __m512 converted_floats = _mm512_cvtepi32_ps(acc);
+#if 1
+      __m512 _sqrt = _mm512_sqrt_ps(converted_floats);
+#else
+      __m512 rsqrt = _mm512_rsqrt14_ps(converted_floats);
+      __m512 _sqrt = _mm512_mul_ps(converted_floats, rsqrt);
+#endif
+      __m512 added_half = _mm512_add_ps(_sqrt, half);
+
+      __m512i result = _mm512_cvt_roundps_epi32(added_half,
+                         (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+
+      _mm512_store_si512(tgt, result);
+      _mm512_store_ps(tgtf, _sqrt);
+
+      for (int k = 0; k < 32; k+=2) {
+        const int16_t dx = opt[(j+k)/2][0] - opt[i][0];
+        const int16_t dy = opt[(j+k)/2][1] - opt[i][1];
+        const float sqs = sqrtf(dx*dx + dy*dy);
+        const int16_t euc2d = int(sqs+0.5);
+        if (tgt[k/2] != euc2d) {
+          std::cout << (j+k)/2 << "," << i << ") " << sqs << " " << tgtf[k/2] << " " << euc2d << " " << tgt[k/2] << "\n";
+          ++cnt;
+        }
+      }
+    }
+  }
+
+  std::chrono::duration<double> duration =
+    std::chrono::high_resolution_clock::now() - start_time;
+
+  std::cout << "Execution Time: " << duration.count() << " seconds\n";
+  std::cout << "cnt: " << cnt << " \n";
+}
+
 int main() {
   for (int i = 0; i < N; i+=2) {
     xy_even[i+0] = opt[i+0][0];  xy_even[i+1] = opt[i+0][1];
@@ -127,11 +196,13 @@ int main() {
 
   std::cout << "Starting benchmark(s) using "
             << omp_get_max_threads() << " threads...\n";
-
+#if 0
   bench1();
 
   sequential();
   sequential_noavx();
+#endif
+  check_inverse_sqrt14();
 
   return 0;
 }
