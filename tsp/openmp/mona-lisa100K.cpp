@@ -1,6 +1,6 @@
 /*
 f=mona-lisa100K
-g++ -O3 -fopenmp -mavx512f -mavx512vnni -mavx512bw -Wall -Wextra -pedantic $f.cpp -o $f
+g++ -O3 -fopenmp -mavx512f -mavx512vnni -mavx512bw -mavx512dq -Wall -Wextra -pedantic $f.cpp -o $f
 cpplint --filter=-legal/copyright $f.cpp
 cppcheck --enable=all --suppress=missingIncludeSystem $f.cpp --check-config
 
@@ -128,18 +128,17 @@ void check_inverse_sqrt14() {
 
   alignas(64) int16_t xy_even2[2*N] = {0};
 
-  for(int k = 0; k < N; ++k) {
+  for (int k = 0; k < N; ++k) {
     xy_even2[2*k] = opt[k][0]; xy_even2[2*k+1] = opt[k][1];
   }
 
-  long cnt = 0;
+  int64_t cnt = 0;
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(30);
-      __m512 half = _mm512_set1_ps(0.5f);
+  __m512d half_pd = _mm512_set1_pd(0.5);
 
-  #pragma omp parallel for
   for (int i = 0; i < N; ++i) {
-    for(int k = 0; k < 32; k += 2) {
+    for (int k = 0; k < 32; k += 2) {
       xy_odd[k] = opt[i][0]; xy_odd[k+1] = opt[i][1];
     }
     __m512i b = _mm512_load_si512((const __m512i*)(xy_odd));
@@ -153,28 +152,47 @@ void check_inverse_sqrt14() {
 
       acc = _mm512_dpwssd_epi32(acc, dxy, dxy);
 
-      __m512 converted_floats = _mm512_cvtepi32_ps(acc);
-#if 1
-      __m512 _sqrt = _mm512_sqrt_ps(converted_floats);
-#else
-      __m512 rsqrt = _mm512_rsqrt14_ps(converted_floats);
-      __m512 _sqrt = _mm512_mul_ps(converted_floats, rsqrt);
-#endif
-      __m512 added_half = _mm512_add_ps(_sqrt, half);
+      // fored to use sqrt_pd and adding 0.5 rounding by nint() and euc_2d:
+      // http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
+      __m512d low_doubles  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(acc));
+      __m256i high_lanes   = _mm512_extracti64x4_epi64(acc, 1);
+      __m512d high_doubles = _mm512_cvtepi32_pd(high_lanes);
 
-      __m512i result = _mm512_cvt_roundps_epi32(added_half,
-                         (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC));
+      __m512d sqrt_low  = _mm512_sqrt_pd(low_doubles);
+      __m512d sqrt_high = _mm512_sqrt_pd(high_doubles);
+
+      __m512d res_low  = _mm512_add_pd(sqrt_low, half_pd);
+      __m512d res_high = _mm512_add_pd(sqrt_high, half_pd);
+
+      __m256i int_low  = _mm512_mask_cvtt_roundpd_epi32
+                           (_mm256_undefined_si256(), 0xFF, res_low,
+                             (_MM_FROUND_NO_EXC));
+      __m256i int_high = _mm512_mask_cvtt_roundpd_epi32
+                           (_mm256_undefined_si256(), 0xFF, res_high,
+                             (_MM_FROUND_NO_EXC));
+
+      __m512i result = _mm512_inserti64x4(_mm512_castsi256_si512(int_low),
+                                          int_high, 1);
 
       _mm512_store_si512(tgt, result);
-      _mm512_store_ps(tgtf, _sqrt);
+
+      __m256 low_floats = _mm512_cvtpd_ps(sqrt_low);
+
+      __m256 high_floats = _mm512_cvtpd_ps(sqrt_high);
+
+      __m512 result2 = _mm512_insertf32x8(_mm512_castps256_ps512(low_floats),
+                                          high_floats, 1);
+
+      _mm512_store_ps(tgtf, result2);
 
       for (int k = 0; k < 32; k+=2) {
         const int16_t dx = opt[(j+k)/2][0] - opt[i][0];
         const int16_t dy = opt[(j+k)/2][1] - opt[i][1];
-        const float sqs = sqrtf(dx*dx + dy*dy);
-        const int16_t euc2d = int(sqs+0.5);
+        const double sqs = sqrt(dx*dx + dy*dy);
+        const int16_t euc2d = static_cast<int>(sqs+0.5);
         if (tgt[k/2] != euc2d) {
-          std::cout << (j+k)/2 << "," << i << ") " << sqs << " " << tgtf[k/2] << " " << euc2d << " " << tgt[k/2] << "\n";
+          std::cout << (j+k)/2 << "," << i << ") " << sqs << " " << tgtf[k/2]
+                    << " " << euc2d << " " << tgt[k/2] << "\n";
           ++cnt;
         }
       }
