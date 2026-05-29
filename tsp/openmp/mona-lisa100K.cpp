@@ -194,6 +194,71 @@ REPEAT(
   std::cout << "euc_2d sum    : " << sum << "\n";
 }
 
+// only 2% improvement for unrolling on 7950X; shaky on 8840HS
+void bench2a() {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  int32_t sum = 0;
+  __m512i acc = _mm512_setzero_si512();
+  __m512d half_pd = _mm512_set1_pd(0.5);
+
+REPEAT(
+  acc = _mm512_setzero_si512();
+
+  #pragma omp parallel for reduction(v512_add:acc)
+  for (int i = 0; i < 2*N; i += 64) { // Unrolled by 2
+    __m512i a0 = _mm512_load_si512((const __m512i*)(xy_even + i));
+    __m512i b0 = _mm512_load_si512((const __m512i*)(xy_odd + i));
+    __m512i dxy0 = _mm512_sub_epi16(a0, b0);
+    __m512i aux0 = _mm512_dpwssd_epi32(_mm512_setzero_si512(), dxy0, dxy0);
+
+    __m512i a1 = _mm512_load_si512((const __m512i*)(xy_even + i + 32));
+    __m512i b1 = _mm512_load_si512((const __m512i*)(xy_odd + i + 32));
+    __m512i dxy1 = _mm512_sub_epi16(a1, b1);
+    __m512i aux1 = _mm512_dpwssd_epi32(_mm512_setzero_si512(), dxy1, dxy1);
+
+    __m512d low_db0  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(aux0));
+    __m512d high_db0 = _mm512_cvtepi32_pd(_mm512_extracti64x4_epi64(aux0, 1));
+
+    __m512d low_db1  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(aux1));
+    __m512d high_db1 = _mm512_cvtepi32_pd(_mm512_extracti64x4_epi64(aux1, 1));
+
+    __m512d sqrt_l0 = _mm512_sqrt_pd(low_db0);
+    __m512d sqrt_h0 = _mm512_sqrt_pd(high_db0);
+    __m512d sqrt_l1 = _mm512_sqrt_pd(low_db1);
+    __m512d sqrt_h1 = _mm512_sqrt_pd(high_db1);
+
+    __m512d res_l0 = _mm512_add_pd(sqrt_l0, half_pd);
+    __m512d res_h0 = _mm512_add_pd(sqrt_h0, half_pd);
+    __m256i int_l0 = _mm512_mask_cvtt_roundpd_epi32(_mm256_undefined_si256(),
+                       0xFF, res_l0, _MM_FROUND_NO_EXC);
+    __m256i int_h0 = _mm512_mask_cvtt_roundpd_epi32(_mm256_undefined_si256(),
+                       0xFF, res_h0, _MM_FROUND_NO_EXC);
+    acc = _mm512_add_epi32(acc, _mm512_inserti64x4(
+            _mm512_castsi256_si512(int_l0), int_h0, 1));
+
+    __m512d res_l1 = _mm512_add_pd(sqrt_l1, half_pd);
+    __m512d res_h1 = _mm512_add_pd(sqrt_h1, half_pd);
+    __m256i int_l1 = _mm512_mask_cvtt_roundpd_epi32(_mm256_undefined_si256(),
+                       0xFF, res_l1, _MM_FROUND_NO_EXC);
+    __m256i int_h1 = _mm512_mask_cvtt_roundpd_epi32(_mm256_undefined_si256(),
+                       0xFF, res_h1, _MM_FROUND_NO_EXC);
+    acc = _mm512_add_epi32(acc, _mm512_inserti64x4(
+            _mm512_castsi256_si512(int_l1), int_h1, 1));
+  }
+
+  sum = _mm512_reduce_add_epi32(acc);
+)
+
+  std::cout << "... completed\n";
+
+  std::chrono::duration<double> duration =
+    std::chrono::high_resolution_clock::now() - start_time;
+
+  std::cout << "Execution Time: " << duration.count() << " seconds\n";
+  std::cout << "euc_2d sum unr: " << sum << "\n";
+}
+
 /*
    I tried
    - always inline
@@ -232,12 +297,6 @@ void sequential() {
 }
 
 int main() {
-#if 0
-  for (int i = 0; i < N; i+=2) {
-    xy_even[i+0] = opt[i+0][0];  xy_even[i+1] = opt[i+0][1];
-     xy_odd[i+0] = opt[i+1][0];   xy_odd[i+1] = opt[i+1][1];
-  }
-#endif
   for (int i = 0; i < N; ++i) {
     xy_even[2*i+0] = opt[i+0][0];      xy_even[2*i+1] = opt[i+0][1];
      xy_odd[2*i+0] = opt[(i+1)%N][0];   xy_odd[2*i+1] = opt[(i+1)%N][1];
@@ -245,16 +304,11 @@ int main() {
 
   std::cout << "Starting benchmark(s) using "
             << omp_get_max_threads() << " threads...\n";
-#if 0
-  bench1();
-
-  sequential();
-  sequential_noavx();
-#endif
 
 // check_sqrt_pd();
 
   bench2();
+  bench2a();
 
   if (omp_get_max_threads() == 1) {
     sequential();
