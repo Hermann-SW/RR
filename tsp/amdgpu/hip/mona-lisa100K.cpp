@@ -66,7 +66,7 @@ int main() {
     
     // Explicitly target the first MI50 device (change index for multi-GPU scaling)
     int device_id = 0;
-    hipSetDevice(device_id);
+    (void)hipSetDevice(device_id);
 
     // 1. Allocate Host (CPU) memory and initialize demo data
     std::vector<short2> h_xy_even(N);
@@ -82,19 +82,19 @@ int main() {
     short2* d_xy_odd  = nullptr;
     int* d_global_sum = nullptr;
 
-    hipMalloc(&d_xy_even, array_size_bytes);
-    hipMalloc(&d_xy_odd, array_size_bytes);
-    hipMalloc(&d_global_sum, sizeof(int));
+    (void)hipMalloc(&d_xy_even, array_size_bytes);
+    (void)hipMalloc(&d_xy_odd, array_size_bytes);
+    (void)hipMalloc(&d_global_sum, sizeof(int));
 
     // Create an asynchronous HIP stream
     hipStream_t stream;
-    hipStreamCreate(&stream);
+    (void)hipStreamCreate(&stream);
 
     // 3. Push data to the GPU and clear the remote scalar tracker
     int h_zero = 0;
-    hipMemcpyAsync(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
-    hipMemcpyAsync(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
-    hipMemcpyAsync(d_global_sum, &h_zero, sizeof(int), hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_global_sum, &h_zero, sizeof(int), hipMemcpyHostToDevice, stream);
 
     // 4. Configure Grid execution dimensions
     // 256 threads per block balances VGPR register allocation and local scheduling
@@ -116,20 +116,20 @@ int main() {
 
     // 6. Read back the lone calculated final scalar
     int h_final_sum = 0;
-    hipMemcpyAsync(&h_final_sum, d_global_sum, sizeof(int), hipMemcpyDeviceToHost, stream);
+    (void)hipMemcpyAsync(&h_final_sum, d_global_sum, sizeof(int), hipMemcpyDeviceToHost, stream);
 
     // Synchronize host execution threads with the asynchronous hardware pipeline
-    hipStreamSynchronize(stream);
+    (void)hipStreamSynchronize(stream);
 
     // Print out the output result verification
     std::cout << "Successfully calculated Euclidean distance profile across " << N << " items." << std::endl;
     std::cout << "Aggregated Rounding Integer Sum Result: " << h_final_sum << std::endl;
 
     // 7. Cleanup Resources
-    hipStreamDestroy(stream);
-    hipFree(d_xy_even);
-    hipFree(d_xy_odd);
-    hipFree(d_global_sum);
+    (void)hipStreamDestroy(stream);
+    (void)hipFree(d_xy_even);
+    (void)hipFree(d_xy_odd);
+    (void)hipFree(d_global_sum);
 
     return 0;
 }
