@@ -5,9 +5,9 @@ cpplint --filter=-legal/copyright mona-lisa100K.cpp
 hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ ./mona-lisa100K 
 Successfully calculated Euclidean distance profile across 100,000 items.
 Aggregated Rounding Integer Sum Result: 5,757,191
-Execution Time: 1.04523 seconds
+Execution Time: 2.8161 seconds
 Loops: 1,000,000
-95.673 double sqrt GFLOPS
+35.5101 double sqrt GFLOPS
 hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ 
 */
 #include "../../../data/tsp/extra/mona-lisa100K.opt.h"
@@ -18,65 +18,62 @@ hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$
 #include <cmath>
 
 const int loops = 1000000;
-#define REPEAT(block) for (int r = loops; r > 0; --r) { block }
 
 // --- GPU Device Kernel ---
 __global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
                                            const short2* __restrict__ xy_odd,
                                            int* __restrict__ global_sum,
-                                           int N) {
-  REPEAT(
+                                           int N)
+{
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int local_acc = 0;
 
-    // 1. Thread-Coalesced Compute Loop
     if (idx < N) {
+        // Hoist global memory loads COMPLETELY outside the loop
         short2 a = xy_even[idx];
         short2 b = xy_odd[idx];
 
-        int dx = static_cast<int>(a.x) - static_cast<int>(b.x);
-        int dy = static_cast<int>(a.y) - static_cast<int>(b.y);
+        int dx = (int)a.x - (int)b.x;
+        int dy = (int)a.y - (int)b.y;
+        double dist_sq = (double)(dx * dx + dy * dy);
 
-        double dist_sq = static_cast<double>(dx * dx + dy * dy);
-
-        // Native MI50 v_sqrt_f64 instruction (quarter-rate)
-//        double sqrt_res = __builtin_amdgcn_sqrtf64(dist_sq);
-        double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
-
-        // Truncate to round to nearest integer matching (+0.5)
-        local_acc = static_cast<int>(sqrt_res + 0.5);
+        // --- THE HOT LOOP: Clean, tight, and completely unhindered ---
+        // Zero sync barriers, zero shared memory writes, zero branch checks.
+        // It operates strictly inside the local registers (VGPRs).
+        for (volatile int i = loops; i > 0; --i) {
+            double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
+            local_acc += (int)(sqrt_res + 0.5);
+        }
+        local_acc /= loops;
     }
 
-    // 2. Intra-Wavefront Reduction (64 threads wide on Vega20/MI50)
+    // --- THE REDUCTION PHASE: Executed ONCE per kernel lifetime ---
+    // 1. Intra-Wavefront Reduction (64 threads wide)
     for (int offset = 64 / 2; offset > 0; offset /= 2) {
         local_acc += __shfl_down(local_acc, offset, 64);
     }
 
-    // 3. Shared Memory Reduction for the entire Thread Block
-    // Fits max 1024 threads (16 wave fronts)
-    __shared__ int shared_block_sums[16];
+    // 2. Shared Memory Reduction for the entire Thread Block
+    __shared__ int shared_block_sums[16]; 
     int lane = threadIdx.x % 64;
     int wid = threadIdx.x / 64;
 
     if (lane == 0) {
         shared_block_sums[wid] = local_acc;
     }
-    __syncthreads();
+    __syncthreads(); // Executed exactly ONE time, not 1,000,000 times!
 
-    // The first wavefront accumulates all warp totals for this block
+    // 3. Consolidate and execute single atomic write
     if (wid == 0) {
-        int block_acc = (threadIdx.x < (blockDim.x / 64))
-                        ? shared_block_sums[lane] : 0;
+        int block_acc = (threadIdx.x < (blockDim.x / 64)) ? shared_block_sums[lane] : 0;
         for (int offset = 64 / 2; offset > 0; offset /= 2) {
             block_acc += __shfl_down(block_acc, offset, 64);
         }
 
-        // 4. Single atomic update per thread block back to global storage
-        if (lane == 0 && r == 1) {
+        if (lane == 0) {
             atomicAdd(global_sum, block_acc);
         }
     }
-  )
 }
 
 // --- Host Orchestration ---
