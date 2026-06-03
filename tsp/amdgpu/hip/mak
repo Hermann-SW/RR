@@ -1,0 +1,2 @@
+#!/bin/bash
+hipcc -O3 --amdgpu-target=gfx906 mona-lisa100K.cpp -o mona-lisa100K
