@@ -1,14 +1,31 @@
+/*
+./mak
+cpplint --filter=-legal/copyright mona-lisa100K.cpp 
+
+hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ ./mona-lisa100K 
+Successfully calculated Euclidean distance profile across 100,000 items.
+Aggregated Rounding Integer Sum Result: 5,757,191
+Execution Time: 1.04523 seconds
+Loops: 1,000,000
+95.673 double sqrt GFLOPS
+hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ 
+*/
+#include "../../../data/tsp/extra/mona-lisa100K.opt.h"
+
+#include <hip/hip_runtime.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <hip/hip_runtime.h>
+
+const int loops = 1000000;
+#define REPEAT(block) for (int r = loops; r > 0; --r) { block }
 
 // --- GPU Device Kernel ---
-__global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even, 
-                                           const short2* __restrict__ xy_odd, 
-                                           int* __restrict__ global_sum, 
-                                           int N) 
-{
+__global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
+                                           const short2* __restrict__ xy_odd,
+                                           int* __restrict__ global_sum,
+                                           int N) {
+  REPEAT(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int local_acc = 0;
 
@@ -17,17 +34,17 @@ __global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
         short2 a = xy_even[idx];
         short2 b = xy_odd[idx];
 
-        int dx = (int)a.x - (int)b.x;
-        int dy = (int)a.y - (int)b.y;
+        int dx = static_cast<int>(a.x) - static_cast<int>(b.x);
+        int dy = static_cast<int>(a.y) - static_cast<int>(b.y);
 
-        double dist_sq = (double)(dx * dx + dy * dy);
-        
+        double dist_sq = static_cast<double>(dx * dx + dy * dy);
+
         // Native MI50 v_sqrt_f64 instruction (quarter-rate)
 //        double sqrt_res = __builtin_amdgcn_sqrtf64(dist_sq);
         double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
 
         // Truncate to round to nearest integer matching (+0.5)
-        local_acc = (int)(sqrt_res + 0.5);
+        local_acc = static_cast<int>(sqrt_res + 0.5);
     }
 
     // 2. Intra-Wavefront Reduction (64 threads wide on Vega20/MI50)
@@ -36,7 +53,8 @@ __global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
     }
 
     // 3. Shared Memory Reduction for the entire Thread Block
-    __shared__ int shared_block_sums[16]; // Fits max 1024 threads (16 wave fronts)
+    // Fits max 1024 threads (16 wave fronts)
+    __shared__ int shared_block_sums[16];
     int lane = threadIdx.x % 64;
     int wid = threadIdx.x / 64;
 
@@ -47,35 +65,42 @@ __global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
 
     // The first wavefront accumulates all warp totals for this block
     if (wid == 0) {
-        int block_acc = (threadIdx.x < (blockDim.x / 64)) ? shared_block_sums[lane] : 0;
+        int block_acc = (threadIdx.x < (blockDim.x / 64))
+                        ? shared_block_sums[lane] : 0;
         for (int offset = 64 / 2; offset > 0; offset /= 2) {
             block_acc += __shfl_down(block_acc, offset, 64);
         }
-        
+
         // 4. Single atomic update per thread block back to global storage
-        if (lane == 0) {
+        if (lane == 0 && r == 1) {
             atomicAdd(global_sum, block_acc);
         }
     }
+  )
 }
 
 // --- Host Orchestration ---
 int main() {
     const int N = 100000;
-    const size_t array_size_bytes = N * sizeof(short2); // ~400 KB per array
-    
-    // Explicitly target the first MI50 device (change index for multi-GPU scaling)
+    const size_t array_size_bytes = N * sizeof(short2);  // ~400 KB per array
+
+    // Explicitly target the first MI50 device
+    // (change index for multi-GPU scaling)
     int device_id = 0;
     (void)hipSetDevice(device_id);
 
     // 1. Allocate Host (CPU) memory and initialize demo data
     std::vector<short2> h_xy_even(N);
     std::vector<short2> h_xy_odd(N);
-    
+
     for (int i = 0; i < N; ++i) {
         h_xy_even[i] = make_short2(100 + (i % 10), 200 + (i % 5));
         h_xy_odd[i]  = make_short2(90 + (i % 10),  190 + (i % 5));
     }
+  for (int i = 0; i < N; ++i) {
+    h_xy_even[i].x = opt[i+0][0];      h_xy_even[i].y = opt[i+0][1];
+     h_xy_odd[i].x = opt[(i+1)%N][0];  h_xy_odd[i].y = opt[(i+1)%N][1];
+  }
 
     // 2. Allocate Device (GPU) memory
     short2* d_xy_even = nullptr;
@@ -92,38 +117,54 @@ int main() {
 
     // 3. Push data to the GPU and clear the remote scalar tracker
     int h_zero = 0;
-    (void)hipMemcpyAsync(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
-    (void)hipMemcpyAsync(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice, stream);
-    (void)hipMemcpyAsync(d_global_sum, &h_zero, sizeof(int), hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_xy_even, h_xy_even.data(), array_size_bytes,
+                         hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_xy_odd, h_xy_odd.data(), array_size_bytes,
+                         hipMemcpyHostToDevice, stream);
+    (void)hipMemcpyAsync(d_global_sum, &h_zero, sizeof(int),
+                         hipMemcpyHostToDevice, stream);
 
     // 4. Configure Grid execution dimensions
-    // 256 threads per block balances VGPR register allocation and local scheduling
+    // 256 threads per block balances VGPR register allocation+local scheduling
     int threads_per_block = 256;
     int blocks_per_grid = (N + threads_per_block - 1) / threads_per_block;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
 
     // 5. Fire execution kernel asynchronously inside the execution stream
     hipLaunchKernelGGL(
         euclidean_distance_kernel,
         dim3(blocks_per_grid),
         dim3(threads_per_block),
-        0, // Dynamic shared memory size in bytes
+        0,  // Dynamic shared memory size in bytes
         stream,
         d_xy_even,
         d_xy_odd,
         d_global_sum,
-        N
-    );
+        N);
 
     // 6. Read back the lone calculated final scalar
     int h_final_sum = 0;
-    (void)hipMemcpyAsync(&h_final_sum, d_global_sum, sizeof(int), hipMemcpyDeviceToHost, stream);
+    (void)hipMemcpyAsync(&h_final_sum, d_global_sum, sizeof(int),
+                         hipMemcpyDeviceToHost, stream);
 
-    // Synchronize host execution threads with the asynchronous hardware pipeline
+    // Synchronize host execution threads w/ the asynchronous hardware pipeline
     (void)hipStreamSynchronize(stream);
 
+    std::chrono::duration<double> duration =
+      std::chrono::high_resolution_clock::now() - start_time;
+
     // Print out the output result verification
-    std::cout << "Successfully calculated Euclidean distance profile across " << N << " items." << std::endl;
-    std::cout << "Aggregated Rounding Integer Sum Result: " << h_final_sum << std::endl;
+    std::cout.imbue(std::locale(""));
+    std::cout << "Successfully calculated Euclidean distance profile across "
+              << N << " items." << std::endl;
+    std::cout << "Aggregated Rounding Integer Sum Result: " << h_final_sum
+              << std::endl;
+    std::cout << "Execution Time: " << duration.count() << " seconds"
+              << std::endl;
+    std::cout << "Loops: " << loops << std::endl;
+    std::cout << (loops * (N / duration.count() / 1e9))
+              << " double sqrt GFLOPS" << std::endl;
 
     // 7. Cleanup Resources
     (void)hipStreamDestroy(stream);
