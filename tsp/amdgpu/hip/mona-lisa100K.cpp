@@ -2,13 +2,23 @@
 ./mak
 cpplint --filter=-legal/copyright mona-lisa100K.cpp 
 
-hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ ./mona-lisa100K 
+back to initial kernel after LLVM destroyed all loop efforts through optimizatuon
+
+hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ rocprofv2 -i counters.txt ./mona-lisa100K
+ROCProfilerV2: Collecting the following counters:
+- L2CacheHit
+- VALUUtilization
+Enabling Counter Collection
 Successfully calculated Euclidean distance profile across 100,000 items.
 Aggregated Rounding Integer Sum Result: 5,757,191
-Execution Time: 2.8161 seconds
-Loops: 1,000,000
-35.5101 double sqrt GFLOPS
+Execution Time: 0.00234684 seconds
+Loops: 1
+0.0426104 double sqrt GFLOPS
+Dispatch_ID(0), GPU_ID(1), Queue_ID(1), Process_ID(6085), Thread_ID(6085), Grid_Size(100096), Workgroup_Size(256), LDS_Per_Workgroup(512), Scratch_Per_Workitem(0), Arch_VGPR(12), Accum_VGPR(0), SGPR(16), Wave_Size(64), Kernel_Name("euclidean_distance_kernel(HIP_vector_type<short, 2u> const*, HIP_vector_type<short, 2u> const*, int*, int) (.kd)"), Begin_Timestamp(9339211584401), End_Timestamp(9339211591281), Correlation_ID(0), L2CacheHit(5.469971), VALUUtilization(94.185930)
 hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ 
+
+100000/(9339211591281-9339211584401) = 14.53488372093023255813  double sqrt GFLOPs
+94.185930% VALU Utilization!
 */
 #include "../../../data/tsp/extra/mona-lisa100K.opt.h"
 
@@ -17,59 +27,57 @@ hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$
 #include <vector>
 #include <cmath>
 
-const int loops = 1000000;
+const int loops = 1;
 
 // --- GPU Device Kernel ---
-__global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even,
-                                           const short2* __restrict__ xy_odd,
-                                           int* __restrict__ global_sum,
-                                           int N)
+__global__ void euclidean_distance_kernel(const short2* __restrict__ xy_even, 
+                                           const short2* __restrict__ xy_odd, 
+                                           int* __restrict__ global_sum, 
+                                           int N) 
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int local_acc = 0;
 
+    // 1. Thread-Coalesced Compute Loop
     if (idx < N) {
-        // Hoist global memory loads COMPLETELY outside the loop
         short2 a = xy_even[idx];
         short2 b = xy_odd[idx];
 
         int dx = (int)a.x - (int)b.x;
         int dy = (int)a.y - (int)b.y;
-        double dist_sq = (double)(dx * dx + dy * dy);
 
-        // --- THE HOT LOOP: Clean, tight, and completely unhindered ---
-        // Zero sync barriers, zero shared memory writes, zero branch checks.
-        // It operates strictly inside the local registers (VGPRs).
-        for (volatile int i = loops; i > 0; --i) {
-            double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
-            local_acc += (int)(sqrt_res + 0.5);
-        }
-        local_acc /= loops;
+        double dist_sq = (double)(dx * dx + dy * dy);
+        
+        // Native MI50 v_sqrt_f64 instruction (quarter-rate)
+        double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
+
+        // Truncate to round to nearest integer matching (+0.5)
+        local_acc = (int)(sqrt_res + 0.5);
     }
 
-    // --- THE REDUCTION PHASE: Executed ONCE per kernel lifetime ---
-    // 1. Intra-Wavefront Reduction (64 threads wide)
+    // 2. Intra-Wavefront Reduction (64 threads wide on Vega20/MI50)
     for (int offset = 64 / 2; offset > 0; offset /= 2) {
         local_acc += __shfl_down(local_acc, offset, 64);
     }
 
-    // 2. Shared Memory Reduction for the entire Thread Block
-    __shared__ int shared_block_sums[16]; 
+    // 3. Shared Memory Reduction for the entire Thread Block
+    __shared__ int shared_block_sums[16]; // Fits max 1024 threads (16 wave fronts)
     int lane = threadIdx.x % 64;
     int wid = threadIdx.x / 64;
 
     if (lane == 0) {
         shared_block_sums[wid] = local_acc;
     }
-    __syncthreads(); // Executed exactly ONE time, not 1,000,000 times!
+    __syncthreads();
 
-    // 3. Consolidate and execute single atomic write
+    // The first wavefront accumulates all warp totals for this block
     if (wid == 0) {
         int block_acc = (threadIdx.x < (blockDim.x / 64)) ? shared_block_sums[lane] : 0;
         for (int offset = 64 / 2; offset > 0; offset /= 2) {
             block_acc += __shfl_down(block_acc, offset, 64);
         }
-
+        
+        // 4. Single atomic update per thread block back to global storage
         if (lane == 0) {
             atomicAdd(global_sum, block_acc);
         }
