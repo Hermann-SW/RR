@@ -2,17 +2,17 @@
 First 10 versions of this file from this Google Gemini chat, until working:
 https://gemini.google.com/share/5b5d0a983dbf
 
-f=mona-lisa100K.per-ker
+f=mona-lisa100K
 hipcc -O3 --amdgpu-target=gfx906 $f.cpp -o $f
 rocm-smi --gpureset -d 0
 
 Does 200,000× determine (optimal) tour length of 100,000 cities TSP.
 Does that 18169× per second, with 8.31277 double sqrt GFLOPS !
 
-$ /usr/bin/time ./mona-lisa100K.per-ker > /dev/shm/out
+$ /usr/bin/time ./mona-lisa100K > /dev/shm/out
 21.71user 1.32system 0:13.33elapsed 172%CPU (0avgtext+0avgdata 159540maxresident)k
 0inputs+12384outputs (1major+11682minor)pagefaults 0swaps
-hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ tail -11 /dev/shm/out 
+$ tail -11 /dev/shm/out 
 --- Batch Loop Iteration 199999 ---
 All CUs finished execution in: 0.011951 ms (8.3675 double sqrt GFLOPS)
 Tour Length Global Sum Result: 5757191
