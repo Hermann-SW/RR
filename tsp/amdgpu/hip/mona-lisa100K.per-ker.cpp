@@ -15,7 +15,7 @@
     } \
 }
 
-// Persistent Grid Kernel utilizing Grid-Stride Loops
+// Persistent Grid Kernel utilizing explicit cache invalidations
 __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBroadcastFlag, 
                                      volatile int* devBlockCounter,
                                      const short2* __restrict__ xy_even,
@@ -26,41 +26,46 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
     bool running = true;
     while (running) {
         
-        // Stage 1: Master thread polls the Host
+        // Stage 1: Block 0, Thread 0 polls the Host Flag via atomics
         if (blockIdx.x == 0 && threadIdx.x == 0) {
-            int currentHostFlag = *hostFlag;
-            if (currentHostFlag != *devBroadcastFlag) {
-                *devBroadcastFlag = currentHostFlag;
+            // Bypass L1 cache via atomic read
+            int currentHostFlag = atomicAdd((int*)hostFlag, 0); 
+            int currentBroadcast = atomicAdd((int*)devBroadcastFlag, 0);
+
+            if (currentHostFlag != currentBroadcast) {
+                atomicExch((int*)devBroadcastFlag, currentHostFlag);
             }
             if (currentHostFlag == 0) {
-                __builtin_amdgcn_s_sleep(10); // Throttle when idle
+                __builtin_amdgcn_s_sleep(15); 
             }
         }
 
-        // Memory fence/sync point for internal tracking updates
-        int command = *devBroadcastFlag;
+        // Force all CUs to wait for memory instructions to finish and invalidate L1 cache
+        __inline_asm__ __volatile__("s_waitcnt vmcnt(0) & lgkmcnt(0)\n\t" "buffer_wbinvl1_vol\n\t" ::: "memory");
+        
+        // Read command bypass-cached via atomic read
+        int command = atomicAdd((int*)devBroadcastFlag, 0);
 
         if (command == 1) {
-            // 1. Thread Block 0 resets global scalar tracking
+            // 1. Thread Block 0 resets global variables
             if (blockIdx.x == 0 && threadIdx.x == 0) {
                 *global_sum = 0;
                 *devBlockCounter = 0; 
                 __threadfence(); 
-                *devBroadcastFlag = 2; // Open Gate
+                atomicExch((int*)devBroadcastFlag, 2); // Open Gate
             }
 
-            // 2. All blocks wait until Block 0 finishes the clear
-            while (*devBroadcastFlag == 1) {
+            // 2. All blocks wait until Gate is opened (command moves from 1 to 2)
+            while (atomicAdd((int*)devBroadcastFlag, 0) == 1) {
                 __builtin_amdgcn_s_sleep(2);
+                __inline_asm__ __volatile__("s_waitcnt vmcnt(0) & lgkmcnt(0)\n\t" "buffer_wbinvl1_vol\n\t" ::: "memory");
             }
 
             int local_acc = 0;
-            
-            // --- GRID STRIDE LOOP ---
-            // Threads process chunks, stepping by the actual total physical thread count
             int gtid = blockIdx.x * blockDim.x + threadIdx.x;
             int stride = totalBlocks * blockDim.x;
 
+            // Grid Stride Loop
             for (int idx = gtid; idx < N; idx += stride) {
                 short2 a = xy_even[idx];
                 short2 b = xy_odd[idx];
@@ -71,13 +76,13 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
                 local_acc += (int)(sqrt_res + 0.5);
             }
 
-            // Intra-Wavefront Reduction (64 threads per wavefront on AMD)
+            // Intra-Wavefront Reduction
             for (int offset = 64 / 2; offset > 0; offset /= 2) {
                 local_acc += __shfl_down(local_acc, offset, 64);
             }
 
-            // Shared Memory Reduction across Wavefronts
-            __shared__ int shared_block_sums[16]; // Fits up to 1024 threads per block safely
+            // Shared Memory Reduction
+            __shared__ int shared_block_sums[16];
             int lane = threadIdx.x % 64;
             int wid = threadIdx.x / 64;
 
@@ -97,11 +102,11 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
                 }
             }
 
-            // Global fence to ensure VRAM visibility across all CUs
+            // Ensure atomic additions are flushed globally
             __threadfence(); 
             __syncthreads(); 
 
-            // Block barrier check-in
+            // Barrier registration
             __shared__ bool isLastBlock;
             if (threadIdx.x == 0) {
                 int ticket = atomicAdd((int*)devBlockCounter, 1);
@@ -111,21 +116,22 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
 
             // 3. Handshake back to host
             if (isLastBlock && threadIdx.x == 0) {
-                *devBroadcastFlag = 0; 
+                atomicExch((int*)devBroadcastFlag, 0); 
                 __threadfence_system();
-                *hostFlag = 0;         
+                atomicExch((int*)hostFlag, 0); // Release host loop         
             }
             
             // Wait for mode reset before continuing loop
-            while(*devBroadcastFlag == 2) {
-                __builtin_amdgcn_s_sleep(5);
+            while(atomicAdd((int*)devBroadcastFlag, 0) == 2) {
+                __builtin_amdgcn_s_sleep(10);
+                __inline_asm__ __volatile__("s_waitcnt vmcnt(0) & lgkmcnt(0)\n\t" "buffer_wbinvl1_vol\n\t" ::: "memory");
             }
         } 
         else if (command == -1) {
             running = false;
         } 
         else {
-            __builtin_amdgcn_s_sleep(100); 
+            __builtin_amdgcn_s_sleep(200); 
         }
     }
 }
@@ -158,14 +164,12 @@ int main() {
     HIP_CHECK(hipMemcpy(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice));
 
-    // HARDWARE-BOUND DIMENSIONS:
-    // Launching 4 blocks per CU for a total of 240 blocks.
-    // This perfectly fits inside your 60 CUs and eliminates tail-scheduling deadlocks.
+    // STRICT 1 BLOCK PER CU SAFETY CEILING
     int threads_per_block = 256;
-    int blocks_per_grid = props.multiProcessorCount * 4; 
+    int blocks_per_grid = props.multiProcessorCount; // Exactly 60 blocks!
 
     std::cout << "GPU Detected: " << props.name << " with " << props.multiProcessorCount << " CUs." << std::endl;
-    std::cout << "Launching hardware-bounded persistent grid with " << blocks_per_grid << " blocks." << std::endl;
+    std::cout << "Launching locked 1-Block-per-CU persistent grid with " << blocks_per_grid << " blocks." << std::endl;
 
     int* hostFlag = nullptr;
     int* devBroadcastFlag = nullptr;
@@ -190,8 +194,10 @@ int main() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        *hostFlag = 1; // Trigger execution
+        // Wake up kernel safely
+        *hostFlag = 1;
 
+        // Host wait loop 
         while (*hostFlag == 1) {
             std::this_thread::yield();
         }
