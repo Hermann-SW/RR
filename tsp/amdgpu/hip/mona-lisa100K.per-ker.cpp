@@ -15,9 +15,9 @@
     } \
 }
 
-// Persistent Grid Kernel utilizing standard HIP fences
-__global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBroadcastFlag, 
-                                     volatile int* devBlockCounter,
+// Persistent Grid Kernel utilizing Global Atomics for Cache Bypass
+__global__ void persistentGridKernel(int* hostFlag, int* devBroadcastFlag, 
+                                     int* devBlockCounter,
                                      const short2* __restrict__ xy_even,
                                      const short2* __restrict__ xy_odd,
                                      int* __restrict__ global_sum,
@@ -26,37 +26,37 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
     bool running = true;
     while (running) {
         
-        // Stage 1: Block 0, Thread 0 polls the Host Flag safely
+        // Stage 1: Block 0, Thread 0 polls the Host Flag via a system-level atomic
         if (blockIdx.x == 0 && threadIdx.x == 0) {
-            int currentHostFlag = *hostFlag; 
-            int currentBroadcast = *devBroadcastFlag;
+            int currentHostFlag = atomicAdd(hostFlag, 0); 
+            int currentBroadcast = atomicAdd(devBroadcastFlag, 0);
 
             if (currentHostFlag != currentBroadcast) {
-                *devBroadcastFlag = currentHostFlag;
+                atomicExch(devBroadcastFlag, currentHostFlag);
             }
             if (currentHostFlag == 0) {
                 __builtin_amdgcn_s_sleep(15); 
             }
         }
 
-        // Standard HIP fence forces visibility across CUs and flushes/invalidates L1
-        __threadfence();
+        // Intra-block synchronization to make sure thread 0 has updated the broadcast
+        __syncthreads();
         
-        int command = *devBroadcastFlag;
+        // FORCE L1 BYPASS: All threads read the broadcast flag using a device-level atomic add of 0
+        int command = atomicAdd(devBroadcastFlag, 0);
 
         if (command == 1) {
             // 1. Thread Block 0 resets global variables
             if (blockIdx.x == 0 && threadIdx.x == 0) {
-                *global_sum = 0;
-                *devBlockCounter = 0; 
+                atomicExch(global_sum, 0);
+                atomicExch(devBlockCounter, 0); 
                 __threadfence(); 
-                *devBroadcastFlag = 2; // Open Gate
+                atomicExch(devBroadcastFlag, 2); // Open Gate
             }
 
-            // 2. All blocks wait until Gate is opened (command moves from 1 to 2)
-            while (*devBroadcastFlag == 1) {
+            // 2. All blocks poll via atomics until Gate is opened (command moves to 2)
+            while (atomicAdd(devBroadcastFlag, 0) == 1) {
                 __builtin_amdgcn_s_sleep(2);
-                __threadfence();
             }
 
             int local_acc = 0;
@@ -100,36 +100,35 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
                 }
             }
 
-            // Ensure atomic additions are flushed globally out to L2
+            // Ensure atomic additions are visible in L2/VRAM
             __threadfence(); 
             __syncthreads(); 
 
-            // Barrier registration via atomic check-in
+            // Barrier registration via atomic increment
             __shared__ bool isLastBlock;
             if (threadIdx.x == 0) {
-                int ticket = atomicAdd((int*)devBlockCounter, 1);
+                int ticket = atomicAdd(devBlockCounter, 1);
                 isLastBlock = (ticket == (totalBlocks - 1));
             }
             __syncthreads();
 
             // 3. Handshake back to host
             if (isLastBlock && threadIdx.x == 0) {
-                *devBroadcastFlag = 0; 
+                atomicExch(devBroadcastFlag, 0); 
                 __threadfence_system(); // Flush out to Host visible system memory
-                *hostFlag = 0;          // Release host loop         
+                atomicExch(hostFlag, 0); // Release host loop         
             }
             
-            // Wait for mode reset before continuing loop
-            while(*devBroadcastFlag == 2) {
+            // Wait for mode reset via atomic polling before continuing loop
+            while(atomicAdd(devBroadcastFlag, 0) == 2) {
                 __builtin_amdgcn_s_sleep(10);
-                __threadfence();
             }
         } 
         else if (command == -1) {
             running = false;
         } 
         else {
-            __builtin_amdgcn_s_sleep(200); 
+            __builtin_amdgcn_s_sleep(150); 
         }
     }
 }
@@ -151,8 +150,8 @@ int main() {
         h_xy_odd[i].x = opt[(i+1)%N][0];  h_xy_odd[i].y = opt[(i+1)%N][1];
     }
 
-    short2* d_xy_even = nullptr;
-    short2* d_xy_odd  = nullptr;
+    int* d_xy_even = nullptr;
+    int* d_xy_odd  = nullptr;
     int* d_global_sum = nullptr;
 
     HIP_CHECK(hipMalloc(&d_xy_even, array_size_bytes));
@@ -162,17 +161,17 @@ int main() {
     HIP_CHECK(hipMemcpy(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice));
 
-    // STRICT 1 BLOCK PER CU SAFETY CEILING
     int threads_per_block = 256;
-    int blocks_per_grid = props.multiProcessorCount; // Exactly 60 blocks for gfx906
+    int blocks_per_grid = props.multiProcessorCount; // Exactly 60 blocks
 
     std::cout << "GPU Detected: " << props.name << " with " << props.multiProcessorCount << " CUs." << std::endl;
-    std::cout << "Launching safe persistent grid with " << blocks_per_grid << " blocks." << std::endl;
+    std::cout << "Launching atomic-synchronized persistent grid with " << blocks_per_grid << " blocks." << std::endl;
 
     int* hostFlag = nullptr;
     int* devBroadcastFlag = nullptr;
     int* devBlockCounter = nullptr;
 
+    // Use coherent host memory allocation
     HIP_CHECK(hipHostMalloc(&hostFlag, sizeof(int), hipHostMallocCoherent));
     HIP_CHECK(hipMalloc(&devBroadcastFlag, sizeof(int)));
     HIP_CHECK(hipMalloc(&devBlockCounter, sizeof(int)));
@@ -184,7 +183,7 @@ int main() {
     HIP_CHECK(hipMemcpy(d_global_sum, &zero, sizeof(int), hipMemcpyHostToDevice));
     
     hipLaunchKernelGGL(persistentGridKernel, dim3(blocks_per_grid), dim3(threads_per_block), 0, 0, 
-                       hostFlag, devBroadcastFlag, devBlockCounter, d_xy_even, d_xy_odd, d_global_sum, N, blocks_per_grid);
+                       hostFlag, devBroadcastFlag, devBlockCounter, (const short2*)d_xy_even, (const short2*)d_xy_odd, d_global_sum, N, blocks_per_grid);
     HIP_CHECK(hipGetLastError());
 
     for (int iter = 1; iter <= 10; ++iter) {
@@ -192,7 +191,7 @@ int main() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        // Wake up kernel safely
+        // Safely trigger the persistent kernel via host memory write
         *hostFlag = 1;
 
         // Host wait loop 
