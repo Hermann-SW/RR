@@ -15,7 +15,7 @@
     } \
 }
 
-// Persistent Grid Kernel using strict VRAM-only signaling
+// Persistent Grid Kernel using Strict Single-Thread Master Signaling
 __global__ void persistentGridKernel(int* devSignalFlag, 
                                      int* devBlockCounter,
                                      const short2* __restrict__ xy_even,
@@ -23,25 +23,38 @@ __global__ void persistentGridKernel(int* devSignalFlag,
                                      int* __restrict__ global_sum,
                                      int N, int totalBlocks) {
     
+    // Shared memory variable to safely broadcast states to the block without wavefront locks
+    __shared__ int localCommand;
     bool running = true;
+
     while (running) {
         
-        // FORCE L1 BYPASS: All threads read the VRAM signal flag via device-level atomic add of 0
-        int command = atomicAdd(devSignalFlag, 0);
+        // Step 1: Exactly ONE thread per block reads the global state via atomic cache-bypass
+        if (threadIdx.x == 0) {
+            localCommand = atomicAdd(devSignalFlag, 0);
+        }
+        // Sync to push the command value out to all threads in the block safely
+        __syncthreads();
+
+        int command = localCommand;
 
         if (command == 1) {
-            // 1. Thread Block 0 resets global variables and clears the way
+            // Thread Block 0 initializes the system states
             if (blockIdx.x == 0 && threadIdx.x == 0) {
                 atomicExch(global_sum, 0);
                 atomicExch(devBlockCounter, 0); 
                 __threadfence(); 
-                atomicExch(devSignalFlag, 2); // Transition to state 2: "In Progress"
+                atomicExch(devSignalFlag, 2); // Change global state to "Processing"
             }
 
-            // 2. All blocks wait until Block 0 shifts the state from 1 to 2
-            while (atomicAdd(devSignalFlag, 0) == 1) {
-                __builtin_amdgcn_s_sleep(2);
+            // Sync point: Wait for Block 0 to open the gate.
+            // Master thread polls safely, throttling to let memory settle
+            if (threadIdx.x == 0) {
+                while (atomicAdd(devSignalFlag, 0) == 1) {
+                    __builtin_amdgcn_s_sleep(4);
+                }
             }
+            __syncthreads(); // Wait until master thread confirms gate is open
 
             int local_acc = 0;
             int gtid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -84,11 +97,11 @@ __global__ void persistentGridKernel(int* devSignalFlag,
                 }
             }
 
-            // Ensure atomic additions are flushed out to L2 VRAM
+            // Flush local block updates out to VRAM
             __threadfence(); 
             __syncthreads(); 
 
-            // Barrier registration via atomic check-in
+            // Barrier registration: Exactly one thread handles check-in
             __shared__ bool isLastBlock;
             if (threadIdx.x == 0) {
                 int ticket = atomicAdd(devBlockCounter, 1);
@@ -96,23 +109,29 @@ __global__ void persistentGridKernel(int* devSignalFlag,
             }
             __syncthreads();
 
-            // 3. Handshake back to host
+            // Handshake completion back to the Host
             if (isLastBlock && threadIdx.x == 0) {
                 __threadfence();
-                atomicExch(devSignalFlag, 0); // Reset VRAM flag back to 0 (Idle)
+                atomicExch(devSignalFlag, 0); // Reset global signal back to 0 (Idle)
             }
             
-            // Wait for the last block to flip state back to 0 before looping
-            while(atomicAdd(devSignalFlag, 0) == 2) {
-                __builtin_amdgcn_s_sleep(5);
+            // Wait for the master handshake to register before allowing the block to re-loop
+            if (threadIdx.x == 0) {
+                while(atomicAdd(devSignalFlag, 0) == 2) {
+                    __builtin_amdgcn_s_sleep(4);
+                }
             }
+            __syncthreads(); // Release the rest of the block threads simultaneously
         } 
         else if (command == -1) {
             running = false;
         } 
         else {
-            // Idle state throttling
-            __builtin_amdgcn_s_sleep(150); 
+            // Idle throttling: Sleep the threads cleanly
+            if (threadIdx.x == 0) {
+                __builtin_amdgcn_s_sleep(150);
+            }
+            __syncthreads();
         }
     }
 }
@@ -149,12 +168,11 @@ int main() {
     int blocks_per_grid = props.multiProcessorCount; // Exactly 60 blocks
 
     std::cout << "GPU Detected: " << props.name << " with " << props.multiProcessorCount << " CUs." << std::endl;
-    std::cout << "Launching safe persistent grid with " << blocks_per_grid << " blocks." << std::endl;
+    std::cout << "Launching safe isolated persistent grid with " << blocks_per_grid << " blocks." << std::endl;
 
     int* devSignalFlag = nullptr;
     int* devBlockCounter = nullptr;
 
-    // Allocate flags purely inside fast device VRAM
     HIP_CHECK(hipMalloc(&devSignalFlag, sizeof(int)));
     HIP_CHECK(hipMalloc(&devBlockCounter, sizeof(int)));
 
@@ -166,24 +184,23 @@ int main() {
     HIP_CHECK(hipMemcpy(devBlockCounter, &zero, sizeof(int), hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(d_global_sum, &zero, sizeof(int), hipMemcpyHostToDevice));
     
-    // Launch kernel ONCE to stay persistent in background
+    // Launch persistent background framework
     hipLaunchKernelGGL(persistentGridKernel, dim3(blocks_per_grid), dim3(threads_per_block), 0, 0, 
                        devSignalFlag, devBlockCounter, d_xy_even, d_xy_odd, d_global_sum, N, blocks_per_grid);
     HIP_CHECK(hipGetLastError());
 
-    // Main control loop
+    // Execute execution loops
     for (int iter = 1; iter <= 10; ++iter) {
         std::cout << "\n--- Batch Loop Iteration " << iter << " ---" << std::endl;
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        // Wake up kernel by forcing an explicit high-speed write to VRAM
+        // Push start signal packet into VRAM
         HIP_CHECK(hipMemcpy(devSignalFlag, &start_cmd, sizeof(int), hipMemcpyHostToDevice));
 
-        // Host monitoring loop: Poll the GPU VRAM variable until it transitions back to 0
+        // Wait for VRAM transition signal to complete
         int check_signal = 1;
         while (check_signal != 0) {
-            // Using a fast synchronous copy acts as an iron-clad memory barrier
             HIP_CHECK(hipMemcpy(&check_signal, devSignalFlag, sizeof(int), hipMemcpyDeviceToHost));
             if (check_signal != 0) {
                 std::this_thread::yield();
@@ -200,7 +217,6 @@ int main() {
     }
 
     std::cout << "\nTerminating GPU Persistent Grid..." << std::endl;
-    // Tell the grid loop to break execution securely
     HIP_CHECK(hipMemcpy(devSignalFlag, &terminate_cmd, sizeof(int), hipMemcpyHostToDevice));
     HIP_CHECK(hipDeviceSynchronize());
 
