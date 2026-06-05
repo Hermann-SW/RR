@@ -1,3 +1,31 @@
+/*
+First 10 versions of this file from this Google Gemini chat, until working:
+https://gemini.google.com/share/5b5d0a983dbf
+
+f=mona-lisa100K.per-ker
+hipcc -O3 --amdgpu-target=gfx906 $f.cpp -o $f
+rocm-smi --gpureset -d 0
+
+Does 200,000× determine (optimal) tour length of 100,000 cities TSP.
+Does that 18169× per second, with 8.31277 double sqrt GFLOPS !
+
+$ /usr/bin/time ./mona-lisa100K.per-ker > /dev/shm/out
+21.71user 1.32system 0:13.33elapsed 172%CPU (0avgtext+0avgdata 159540maxresident)k
+0inputs+12384outputs (1major+11682minor)pagefaults 0swaps
+hermann@Radeon-vii:~/RR/tsp/amdgpu/hip$ tail -11 /dev/shm/out 
+--- Batch Loop Iteration 199999 ---
+All CUs finished execution in: 0.011951 ms (8.3675 double sqrt GFLOPS)
+Tour Length Global Sum Result: 5757191
+
+--- Batch Loop Iteration 200000 ---
+All CUs finished execution in: 0.011819 ms (8.46095 double sqrt GFLOPS)
+Tour Length Global Sum Result: 5757191
+
+Total time for all iterations: 11007.3 ms / 2405.94ms [18169.7/s / 8.31277 double sqrt GFLOPS]
+
+System Cleaned Up. Exiting Safely.
+$ 
+*/
 #include "../../../data/tsp/extra/mona-lisa100K.opt.h"
 
 #include <hip/hip_runtime.h>
@@ -6,6 +34,8 @@
 #include <thread>
 #include <vector>
 #include <cmath>
+
+const int iterations = 200'000;
 
 #define HIP_CHECK(command) { \
     hipError_t status = command; \
@@ -101,8 +131,11 @@ int main() {
     std::cout << "GPU Detected: " << props.name << " with " << props.multiProcessorCount << " CUs." << std::endl;
     std::cout << "Hardware Configuration: Grid Size " << blocks_per_grid << " blocks, Block Size " << threads_per_block << " threads." << std::endl;
 
+    auto start = std::chrono::high_resolution_clock::now();
+    double tot = 0.0;
+
     // Run 10 iterations safely driven by the host
-    for (int iter = 1; iter <= 10; ++iter) {
+    for (int iter = 1; iter <= iterations; ++iter) {
         std::cout << "\n--- Batch Loop Iteration " << iter << " ---" << std::endl;
 
         // Clear global scalar tracker before launching
@@ -120,13 +153,21 @@ int main() {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> duration = end - start;
-        std::cout << "All CUs finished execution in: " << duration.count() << " ms" << std::endl;
+        std::cout << "All CUs finished execution in: " << duration.count() << " ms ("
+                  << 1000.0/duration.count()*N/1e9 << " double sqrt GFLOPS)" << std::endl;
+        tot += duration.count();
 
         // Read back the final computed scalar safely
         int h_final_sum = 0;
         HIP_CHECK(hipMemcpy(&h_final_sum, d_global_sum, sizeof(int), hipMemcpyDeviceToHost));
         std::cout << "Tour Length Global Sum Result: " << h_final_sum << std::endl;
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+    std::cout << "\nTotal time for all iterations: " << duration.count() << " ms / "
+              << tot << "ms [" << 1000.0/duration.count()*iterations << "/s / "
+              << 1000.0/tot*N/1e9*iterations << " double sqrt GFLOPS]" << std::endl;
 
     // Free VRAM resources cleanly
     HIP_CHECK(hipFree(d_xy_even));
