@@ -15,7 +15,7 @@
     } \
 }
 
-// Persistent Grid Kernel utilizing all CUs
+// Persistent Grid Kernel utilizing Grid-Stride Loops
 __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBroadcastFlag, 
                                      volatile int* devBlockCounter,
                                      const short2* __restrict__ xy_even,
@@ -30,52 +30,54 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
         if (blockIdx.x == 0 && threadIdx.x == 0) {
             int currentHostFlag = *hostFlag;
             if (currentHostFlag != *devBroadcastFlag) {
-                // Broadcast the new command state to all internal GPU blocks
                 *devBroadcastFlag = currentHostFlag;
             }
             if (currentHostFlag == 0) {
-                __builtin_amdgcn_s_sleep(10); // Throttle master thread when idle
+                __builtin_amdgcn_s_sleep(10); // Throttle when idle
             }
         }
 
-        // Synchronize internally via L2 cache read
-        // __threadfence() equivalent or volatile tracking reads current value
+        // Memory fence/sync point for internal tracking updates
         int command = *devBroadcastFlag;
 
         if (command == 1) {
-            // 1. Thread Block 0 resets variables
+            // 1. Thread Block 0 resets global scalar tracking
             if (blockIdx.x == 0 && threadIdx.x == 0) {
                 *global_sum = 0;
                 *devBlockCounter = 0; 
                 __threadfence(); 
-                *devBroadcastFlag = 2; // Signal 'Gate Open / Computation Ready'
+                *devBroadcastFlag = 2; // Open Gate
             }
 
-            // 2. All blocks wait until Block 0 has cleared the sum and opened the gate
+            // 2. All blocks wait until Block 0 finishes the clear
             while (*devBroadcastFlag == 1) {
                 __builtin_amdgcn_s_sleep(2);
             }
 
-            int idx = blockIdx.x * blockDim.x + threadIdx.x;
             int local_acc = 0;
+            
+            // --- GRID STRIDE LOOP ---
+            // Threads process chunks, stepping by the actual total physical thread count
+            int gtid = blockIdx.x * blockDim.x + threadIdx.x;
+            int stride = totalBlocks * blockDim.x;
 
-            if (idx < N) {
+            for (int idx = gtid; idx < N; idx += stride) {
                 short2 a = xy_even[idx];
                 short2 b = xy_odd[idx];
                 int dx = (int)a.x - (int)b.x;
                 int dy = (int)a.y - (int)b.y;
                 double dist_sq = (double)(dx * dx + dy * dy);
                 double sqrt_res = __builtin_amdgcn_sqrt(dist_sq);
-                local_acc = (int)(sqrt_res + 0.5);
+                local_acc += (int)(sqrt_res + 0.5);
             }
 
-            // Intra-Wavefront Reduction
+            // Intra-Wavefront Reduction (64 threads per wavefront on AMD)
             for (int offset = 64 / 2; offset > 0; offset /= 2) {
                 local_acc += __shfl_down(local_acc, offset, 64);
             }
 
-            // Shared Memory Reduction
-            __shared__ int shared_block_sums[16];
+            // Shared Memory Reduction across Wavefronts
+            __shared__ int shared_block_sums[16]; // Fits up to 1024 threads per block safely
             int lane = threadIdx.x % 64;
             int wid = threadIdx.x / 64;
 
@@ -95,11 +97,11 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
                 }
             }
 
-            // Global Fence to ensure global atomics are visible to all CUs
+            // Global fence to ensure VRAM visibility across all CUs
             __threadfence(); 
             __syncthreads(); 
 
-            // EVERY block reports that it has checked in
+            // Block barrier check-in
             __shared__ bool isLastBlock;
             if (threadIdx.x == 0) {
                 int ticket = atomicAdd((int*)devBlockCounter, 1);
@@ -107,14 +109,14 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
             }
             __syncthreads();
 
-            // 3. Handshake back to host (Only handled safely by the absolute last block out the door)
+            // 3. Handshake back to host
             if (isLastBlock && threadIdx.x == 0) {
-                *devBroadcastFlag = 0; // Reset internal broadcast back to idle
+                *devBroadcastFlag = 0; 
                 __threadfence_system();
-                *hostFlag = 0;         // Signal Host execution is done
+                *hostFlag = 0;         
             }
             
-            // Wait for the broadcast flag to drop out of mode 2 before looping back
+            // Wait for mode reset before continuing loop
             while(*devBroadcastFlag == 2) {
                 __builtin_amdgcn_s_sleep(5);
             }
@@ -123,7 +125,6 @@ __global__ void persistentGridKernel(volatile int* hostFlag, volatile int* devBr
             running = false;
         } 
         else {
-            // Idle state throttling
             __builtin_amdgcn_s_sleep(100); 
         }
     }
@@ -157,11 +158,14 @@ int main() {
     HIP_CHECK(hipMemcpy(d_xy_even, h_xy_even.data(), array_size_bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(d_xy_odd, h_xy_odd.data(), array_size_bytes, hipMemcpyHostToDevice));
 
+    // HARDWARE-BOUND DIMENSIONS:
+    // Launching 4 blocks per CU for a total of 240 blocks.
+    // This perfectly fits inside your 60 CUs and eliminates tail-scheduling deadlocks.
     int threads_per_block = 256;
-    int blocks_per_grid = (N + threads_per_block - 1) / threads_per_block;
+    int blocks_per_grid = props.multiProcessorCount * 4; 
 
     std::cout << "GPU Detected: " << props.name << " with " << props.multiProcessorCount << " CUs." << std::endl;
-    std::cout << "Launching persistent grid with " << blocks_per_grid << " blocks." << std::endl;
+    std::cout << "Launching hardware-bounded persistent grid with " << blocks_per_grid << " blocks." << std::endl;
 
     int* hostFlag = nullptr;
     int* devBroadcastFlag = nullptr;
@@ -177,21 +181,17 @@ int main() {
     HIP_CHECK(hipMemcpy(devBlockCounter, &zero, sizeof(int), hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(d_global_sum, &zero, sizeof(int), hipMemcpyHostToDevice));
     
-    // Launch kernel ONCE
     hipLaunchKernelGGL(persistentGridKernel, dim3(blocks_per_grid), dim3(threads_per_block), 0, 0, 
                        hostFlag, devBroadcastFlag, devBlockCounter, d_xy_even, d_xy_odd, d_global_sum, N, blocks_per_grid);
     HIP_CHECK(hipGetLastError());
 
-    // Run 10 iterations safely
     for (int iter = 1; iter <= 10; ++iter) {
         std::cout << "\n--- Batch Loop Iteration " << iter << " ---" << std::endl;
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        // Wake up kernel execution
-        *hostFlag = 1;
+        *hostFlag = 1; // Trigger execution
 
-        // Host wait loop 
         while (*hostFlag == 1) {
             std::this_thread::yield();
         }
@@ -205,12 +205,10 @@ int main() {
         std::cout << "Tour Length Global Sum Result: " << h_final_sum << std::endl;
     }
 
-    // Graceful Termination
     std::cout << "\nTerminating GPU Persistent Grid..." << std::endl;
     *hostFlag = -1;
     HIP_CHECK(hipDeviceSynchronize());
 
-    // Clean up
     HIP_CHECK(hipHostFree(hostFlag));
     HIP_CHECK(hipFree(devBroadcastFlag));
     HIP_CHECK(hipFree(devBlockCounter));
