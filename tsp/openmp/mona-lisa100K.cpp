@@ -206,7 +206,7 @@ REPEAT(
   acc = _mm512_setzero_si512();
 
   #pragma omp parallel for reduction(v512_add:acc)
-  for (int i = 0; i < 2*N; i += 64) { // Unrolled by 2
+  for (int i = 0; i < 2*N; i += 64) {  // Unrolled by 2
     __m512i a0 = _mm512_load_si512((const __m512i*)(xy_even + i));
     __m512i b0 = _mm512_load_si512((const __m512i*)(xy_odd + i));
     __m512i dxy0 = _mm512_sub_epi16(a0, b0);
