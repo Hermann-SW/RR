@@ -65,6 +65,15 @@ alignas(64) int16_t xy_odd[2*N] = {0};
     omp_out = _mm512_add_epi32(omp_out, omp_in)) \
     initializer(omp_priv = _mm512_setzero_si512())
 
+#if defined(__AVX512VNNI__)
+    #define DOT_PRODUCT_ACC(acc, a, b) _mm512_dpwssd_epi32(acc, a, b)
+#elif defined(__AVX512BW__)
+    #define DOT_PRODUCT_ACC(acc, a, b) \
+        _mm512_add_epi32(acc, _mm512_madd_epi16(a, b))
+#else
+    #error "This architecture is not supported. Requires at least AVX512BW."
+#endif
+
 // forced to use sqrt_pd and adding 0.5 for rounding (by C nint() and euc_2d):
 // http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
 void check_sqrt_pd() {
@@ -97,14 +106,7 @@ void check_sqrt_pd() {
 
       __m512i acc = _mm512_setzero_si512();
 
-#ifdef __AVX512VNNI__
-      acc = _mm512_dpwssd_epi32(acc, dxy, dxy);
-#elif defined(__AVX512BW__)
-    __m512i prod = _mm512_madd_epi16(dxy, dxy);
-    acc = _mm512_add_epi32(acc, prod);
-#else
-    #error "This architecture is not supported. Requires at least AVX512BW."
-#endif
+      acc = DOT_PRODUCT_ACC(acc, dxy, dxy);
 
       __m512d low_doubles  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(acc));
       __m256i high_lanes   = _mm512_extracti64x4_epi64(acc, 1);
@@ -175,14 +177,7 @@ for (int i = 0; i < repeats; ++i) {
 
     __m512i dxy = _mm512_sub_epi16(a, b);
 
-#ifdef __AVX512VNNI__
-    __m512i aux = _mm512_dpwssd_epi32(_mm512_setzero_si512(), dxy, dxy);
-#elif defined(__AVX512BW__)
-    __m512i prod = _mm512_madd_epi16(dxy, dxy);
-    __m512i aux  = _mm512_add_epi32(_mm512_setzero_si512(), prod);
-#else
-    #error "This architecture is not supported. Requires at least AVX512BW."
-#endif
+    __m512i aux = DOT_PRODUCT_ACC(_mm512_setzero_si512(), dxy, dxy);
 
     __m512d low_doubles  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(aux));
     __m256i high_lanes   = _mm512_extracti64x4_epi64(aux, 1);
@@ -239,26 +234,14 @@ for (int i = 0; i < repeats; ++i) {
     __m512i a0 = _mm512_load_si512((const __m512i*)(xy_even + i));
     __m512i b0 = _mm512_load_si512((const __m512i*)(xy_odd + i));
     __m512i dxy0 = _mm512_sub_epi16(a0, b0);
-#ifdef __AVX512VNNI__
-    __m512i aux0 = _mm512_dpwssd_epi32(_mm512_setzero_si512(), dxy0, dxy0);
-#elif defined(__AVX512BW__)
-    __m512i prod0 = _mm512_madd_epi16(dxy0, dxy0);
-    __m512i aux0  = _mm512_add_epi32(_mm512_setzero_si512(), prod0);
-#else
-    #error "This architecture is not supported. Requires at least AVX512BW."
-#endif
+
+    __m512i aux0 = DOT_PRODUCT_ACC(_mm512_setzero_si512(), dxy0, dxy0);
 
     __m512i a1 = _mm512_load_si512((const __m512i*)(xy_even + i + 32));
     __m512i b1 = _mm512_load_si512((const __m512i*)(xy_odd + i + 32));
     __m512i dxy1 = _mm512_sub_epi16(a1, b1);
-#ifdef __AVX512VNNI__
-    __m512i aux1 = _mm512_dpwssd_epi32(_mm512_setzero_si512(), dxy1, dxy1);
-#elif defined(__AVX512BW__)
-    __m512i prod1 = _mm512_madd_epi16(dxy1, dxy1);
-    __m512i aux1  = _mm512_add_epi32(_mm512_setzero_si512(), prod1);
-#else
-    #error "This architecture is not supported. Requires at least AVX512BW."
-#endif
+
+    __m512i aux1 = DOT_PRODUCT_ACC(_mm512_setzero_si512(), dxy1, dxy1);
 
     __m512d low_db0  = _mm512_cvtepi32_pd(_mm512_castsi512_si256(aux0));
     __m512d high_db0 = _mm512_cvtepi32_pd(_mm512_extracti64x4_epi64(aux0, 1));
