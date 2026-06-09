@@ -12,40 +12,51 @@ perf stat -a -e fp_ops_retired_by_width.pack_512_uops_retired,cycles,instruction
 - power mode performance
 - SMT turned off
 - 500,000× determining current (optimal) 100,000 cities TSP tour length:
-- sequential / AVX512 single threaded = 4.299
-- AVX512 1 thread / 16 threads = 14.609
-- total speedup 62.810
+- sequential / AVX512 single threaded = 4.25
+- AVX512 1 thread / 8 threads = 6.38
+- total speedup 27.10
 - check_sqrt_pd() did prove that AVX512 and C sqrt computations have identical results
 
-hermann@7950x:~/RR/tsp/openmp$ nproc
+$ nproc
 16
-hermann@7950x:~/RR/tsp/openmp$ OMP_NUM_THREADS=16 ./$f
-Starting benchmark(s) using 16 threads...
+$ OMP_NUM_THREADS=8 numactl -C 0-7 ./mona-lisa100K 
+Starting benchmark(s) using 8 threads...
 ... completed
-Execution Time: 1.26175 seconds
+Execution Time: 2.92354 seconds
+double sqrt   : 17.1025 GFLOPS
 euc_2d sum    : 5757191
-hermann@7950x:~/RR/tsp/openmp$ OMP_NUM_THREADS=1 ./$f
+... completed
+Execution Time: 2.85557 seconds
+double sqrt   : 17.5096 GFLOPS
+euc_2d sum unr: 5757191
+$ OMP_NUM_THREADS=1 ./mona-lisa100K 
 Starting benchmark(s) using 1 threads...
 ... completed
-Execution Time: 18.4331 seconds
+Execution Time: 18.6585 seconds
+double sqrt   : 2.67974 GFLOPS
 euc_2d sum    : 5757191
-Execution Time: 79.2512 seconds
+... completed
+Execution Time: 18.57 seconds
+double sqrt   : 2.69251 GFLOPS
+euc_2d sum unr: 5757191
+Execution Time: 79.2557 seconds
 sequential    : 5757191
-Execution Time: 80.6615 seconds
+Execution Time: 80.9105 seconds
 sequent. noavx: 5757191
-hermann@7950x:~/RR/tsp/openmp$
+$
 */
 #include <math.h>
 #include <omp.h>
 #include <inttypes.h>
 #include <immintrin.h>
 #include <iostream>
+#include <cassert>
 #include <chrono>   // NOLINT [build/c++11]
 #include "../../data/tsp/extra/mona-lisa100K.opt.h"
 
 const int N = 100000;  // mona-list100K.tsp, divisible by 32!
 
-#define REPEAT(block) for (int i = 0; i < 500000; ++i) { block }
+const int repeats = 500000;
 
 alignas(64) int16_t xy_even[2*N] = {0};
 alignas(64) int16_t xy_odd[2*N] = {0};
@@ -143,11 +154,11 @@ void check_sqrt_pd() {
 void bench2() {
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  int32_t sum = 0;
+  int64_t sum = 0;
   __m512i acc = _mm512_setzero_si512();
   __m512d half_pd = _mm512_set1_pd(0.5);
 
-REPEAT(
+for (int i = 0; i < repeats; ++i) {
   acc = _mm512_setzero_si512();
 
   #pragma omp parallel for reduction(v512_add:acc)
@@ -182,27 +193,31 @@ REPEAT(
     acc = _mm512_add_epi32(acc, euc_2d);
   }
 
-  sum = _mm512_reduce_add_epi32(acc);
-)
+  sum += _mm512_reduce_add_epi32(acc);
+}
 
   std::cout << "... completed\n";
 
   std::chrono::duration<double> duration =
     std::chrono::high_resolution_clock::now() - start_time;
 
+  assert(sum == repeats * 5757191L);
+
   std::cout << "Execution Time: " << duration.count() << " seconds\n";
-  std::cout << "euc_2d sum    : " << sum << "\n";
+  std::cout << "double sqrt   : " << repeats/1e9*N/duration.count()
+            << " GFLOPS\n";
+  std::cout << "euc_2d sum    : " << sum/repeats << "\n";
 }
 
 // only 2% improvement for unrolling on 7950X; shaky on 8840HS
 void bench2a() {
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  int32_t sum = 0;
+  int64_t sum = 0;
   __m512i acc = _mm512_setzero_si512();
   __m512d half_pd = _mm512_set1_pd(0.5);
 
-REPEAT(
+for (int i = 0; i < repeats; ++i) {
   acc = _mm512_setzero_si512();
 
   #pragma omp parallel for reduction(v512_add:acc)
@@ -247,16 +262,20 @@ REPEAT(
             _mm512_castsi256_si512(int_l1), int_h1, 1));
   }
 
-  sum = _mm512_reduce_add_epi32(acc);
-)
+  sum += _mm512_reduce_add_epi32(acc);
+}
 
   std::cout << "... completed\n";
 
   std::chrono::duration<double> duration =
     std::chrono::high_resolution_clock::now() - start_time;
 
+  assert(sum == 500000L * 5757191L);
+
   std::cout << "Execution Time: " << duration.count() << " seconds\n";
-  std::cout << "euc_2d sum unr: " << sum << "\n";
+  std::cout << "double sqrt   : " << repeats/1e9*N/duration.count()
+            << " GFLOPS\n";
+  std::cout << "euc_2d sum unr: " << sum/repeats << "\n";
 }
 
 /*
@@ -270,7 +289,7 @@ REPEAT(
   auto start_time = std::chrono::high_resolution_clock::now();         \
   int64_t sum = 0;                                                     \
                                                                        \
-REPEAT(                                                                \
+for (int i = 0; i < repeats; ++i) {                                    \
   sum = 0;                                                             \
   for (int i = 0, j = N-1; i < N; j = i, ++i) {                        \
     const int16_t dx = opt[i][0] - opt[j][0];                          \
@@ -278,7 +297,7 @@ REPEAT(                                                                \
     const double sqs = sqrt(dx*dx + dy*dy);                            \
     sum += static_cast<int>(sqs+0.5);                                  \
   }                                                                    \
-)                                                                      \
+}                                                                      \
                                                                        \
   std::chrono::duration<double> duration =                             \
     std::chrono::high_resolution_clock::now() - start_time;            \
