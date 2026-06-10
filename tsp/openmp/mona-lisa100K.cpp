@@ -58,6 +58,8 @@ const int N = 100000;  // mona-list100K.tsp, divisible by 32!
 
 const int repeats = 500000;
 
+alignas(64) int16_t xy_even_[2*N] = {0};
+alignas(64) int16_t xy_odd_[2*N] = {0};
 alignas(64) int16_t xy_even[2*N] = {0};
 alignas(64) int16_t xy_odd[2*N] = {0};
 
@@ -164,13 +166,16 @@ void bench2() {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   int64_t sum = 0;
-  __m512i acc = _mm512_setzero_si512();
   __m512d half_pd = _mm512_set1_pd(0.5);
 
 for (int i = 0; i < repeats; ++i) {
-  acc = _mm512_setzero_si512();
+  // We move the reduction variable to a local accumulation
+  // to prevent cross-die thrashing during the repeated loops.
+  __m512i acc = _mm512_setzero_si512();
 
-  #pragma omp parallel for reduction(v512_add:acc)
+  // Use schedule(static) to guarantee that chunks assigned to 16C AMD 7950X
+  // cores 0-7 (ccd0) vs cores 8-15 (ccd1) remain identical every iteration.
+  #pragma omp parallel for reduction(v512_add:acc) schedule(static)
   for (int i = 0; i < 2*N; i+=32) {
     __m512i a = _mm512_load_si512((const __m512i*)(xy_even+i));
     __m512i b = _mm512_load_si512((const __m512i*)(xy_odd+i));
@@ -202,6 +207,8 @@ for (int i = 0; i < repeats; ++i) {
     acc = _mm512_add_epi32(acc, euc_2d);
   }
 
+  // OpenMP automatically aggregates the 'acc' variables from both CCDs
+  // at the end of the parallel block cleanly.
   sum += _mm512_reduce_add_epi32(acc);
 }
 
@@ -328,8 +335,20 @@ void sequential() {
 
 int main() {
   for (int i = 0; i < N; ++i) {
-    xy_even[2*i+0] = opt[i+0][0];      xy_even[2*i+1] = opt[i+0][1];
-     xy_odd[2*i+0] = opt[(i+1)%N][0];   xy_odd[2*i+1] = opt[(i+1)%N][1];
+    xy_even_[2*i+0] = opt[i+0][0];      xy_even_[2*i+1] = opt[i+0][1];
+     xy_odd_[2*i+0] = opt[(i+1)%N][0];   xy_odd_[2*i+1] = opt[(i+1)%N][1];
+  }
+  // FIRST-TOUCH INITIALIZATION (Crucial for multi-die CPUs like AMD 7950X!)
+  #pragma omp parallel for schedule(static)
+  for (int64_t i = 0; i < 2 * N; i += 32) {
+    // Initialize memory from the specific threads/cores
+    // that will later process it in bench2()
+    for(int j = 0; j < 32; ++j) {
+      if (i + j < 2 * N) {
+        xy_even[i + j] = xy_even_[i + j];
+        xy_odd[i + j]  = xy_odd_[i + j];
+      }
+    }
   }
 
   std::cout << "Starting benchmark(s) using "
