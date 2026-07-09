@@ -6,7 +6,7 @@ hipcc -O3 --offload-arch=gfx906 $f.cpp -o $f  # AMD Instinct MI50
 hipcc -O3 -arch=sm_60 -x cu $f.cpp -o $f      # NVIDIA Tesla P100
 ```
 
-Similar AVX512 synthetic benchmark:
+Similar [AVX512 synthetic benchmark](https://gist.github.com/Hermann-SW/c4e40e823d274d03094d5e6d5071017d?permalink_comment_id=6237349#gistcomment-6237349):
 | CPU       | [double Gsqrt/s] |
 |----------:|--------:|
 | AMD 7950X | 43.5 |
