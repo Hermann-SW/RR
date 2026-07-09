@@ -1,36 +1,140 @@
-Radeon VII GPU has 3.36 TFLOPS FP64:
-https://www.techpowerup.com/gpu-specs/radeon-vii.c3358
-
-With 4 cycles per double sqrt operation on that GPU, theoretical limit is 3.36 / 4 = 840 double sqrt GFLOPS.
+This is synthetic benchmark to measure peak double sqrt performance.
 
 ```
-hipcc -O3 --amdgpu-target=gfx906 benchmark_sqrt.cpp -o benchmark_sqrt
-rocm-smi --gpureset -d 0
+f=benchmark_sqrt
+hipcc -O3 --offload-arch=gfx906 $f.cpp -o $f  # AMD Instinct MI50
+hipcc -O3 -arch=sm_60 -x cu $f.cpp -o $f      # NVIDIA Tesla P100
 ```
 
-(gemini) [benchmark_sqrt.cpp](./benchmark_sqrt) reports 257 GFLOPS measured:
+[benchmark_sqrt.cpp](./benchmark_sqrt.cpp) reports for
+- NVIDIA Tesla P100 PCIE: 193.7 double Gsqrt/s
+- AMD Radeon VII: 363.5 double Gsqrt/s
+- AMD Instinct MI50s 426.9-436.7 double Gsqrt/s
 ```
-$ rocprofv2 -i <(echo "pmc : L2CacheHit, VALUUtilization") ./benchmark_sqrt
-Allocating 1525 MB of VRAM...
-ROCProfilerV2: Collecting the following counters:
-- L2CacheHit
-- VALUUtilization
-Enabling Counter Collection
-Launching Kernel across 390625 thread blocks...
+hermann@W-2225:~$ ./benchmark_sqrt 0
+Device ID 0 (Tesla P100-PCIE-16GB) UUID: GPU-8225733aafcc75d8e31bec550b39eb2e
+Number of CUs/SMs: 56
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1785715 thread blocks...
 --------------------------------------------------------
 Execution Completed Successfully.
-Execution Time: 0.00388257 seconds
-Total Sqrt Operations: 1e+09
-Verification Check (Last Element): 3.51285
-257.561 Genuine double sqrt GFLOPS
-Dispatch_ID(0), GPU_ID(1), Queue_ID(1), Process_ID(13221), Thread_ID(13221), Grid_Size(100000000), Workgroup_Size(256), LDS_Per_Workgroup(0), Scratch_Per_Workitem(0), Arch_VGPR(8), Accum_VGPR(0), SGPR(16), Wave_Size(64), Kernel_Name("genuine_sqrt_kernel(double const*, double*, int) (.kd)"), Begin_Timestamp(27595851401228), End_Timestamp(27595854073395), Correlation_ID(0), L2CacheHit(0.000735), VALUUtilization(100.000000)
-$
+Execution Time: 0.0206519 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+193.686 double Gsqrt/s 
+hermann@W-2225:~$ 
 ```
 
-profiler timestamps show that less execution time happened, only 2.67ms:
 ```
-echo "(27595854073395-27595851401228)/10^9" | bc -ql
-.00267216700000000000
+hermann@Radeon-vii:~$ ./benchmark_sqrt 0
+Device ID 0 (AMD Radeon VII) UUID: GPU-3f52314172fc1a63
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.0110056 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+363.451 double Gsqrt/s 
+hermann@Radeon-vii:~$ 
 ```
 
-That time corresponds to 374 double sqrt GFLOPS, which is 44.5% of theoretical maximum.
+```
+hermann@7600x:~$ ./benchmark_sqrt 0
+Device ID 0 (AMD Radeon Graphics) UUID: GPU-4124412172e62126
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00930763 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+429.755 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 1
+Device ID 1 (AMD Instinct MI50/MI60) UUID: GPU-c49e19417337ece3
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00936955 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+426.915 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 2
+Device ID 2 (AMD Instinct MI50/MI60) UUID: GPU-6a0e7961732c730d
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00935643 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+427.513 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 3
+Device ID 3 (AMD Instinct MI50/MI60) UUID: GPU-13c24061732c730c
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00916043 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+436.661 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 4
+Device ID 4 (AMD Instinct MI50/MI60) UUID: GPU-304c70e172dc768c
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00930139 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+430.043 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 5
+Device ID 5 (AMD Instinct MI50/MI60) UUID: GPU-6e56508172dc76b6
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00927963 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+431.052 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 6
+Device ID 6 (AMD Instinct MI50/MI60) UUID: GPU-d64a58a17330f0ed
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00935898 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+427.397 double Gsqrt/s 
+hermann@7600x:~$ 
+hermann@7600x:~$ ./benchmark_sqrt 7
+Device ID 7 (AMD Instinct MI50/MI60) UUID: GPU-f890794172e62691
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.00935211 seconds
+Total Sqrt Operations: 4e+09
+Verification Check (Last Element): 3.51286
+427.711 double Gsqrt/s 
+hermann@7600x:~$ 
+```
