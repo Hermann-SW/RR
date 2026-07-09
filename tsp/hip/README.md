@@ -6,10 +6,19 @@ hipcc -O3 --offload-arch=gfx906 $f.cpp -o $f  # AMD Instinct MI50
 hipcc -O3 -arch=sm_60 -x cu $f.cpp -o $f      # NVIDIA Tesla P100
 ```
 
+Similar AVX512 synthetic benchmark:
+| CPU       | [double Gsqrt/s] |
+|----------:|--------:|
+| AMD 7950X | 43.5 |
+| AMD 9950X | 90.7 |
+
 [benchmark_sqrt.cpp](./benchmark_sqrt.cpp) reports for
-- NVIDIA Tesla P100 PCIE: 193.7 double Gsqrt/s
-- AMD Radeon VII: 363.5 double Gsqrt/s
-- AMD Instinct MI50s 426.9-436.7 double Gsqrt/s
+| GPU                    | [double Gsqrt/s] |
+|-----------------------:|--------:|
+| NVIDIA Tesla P100 PCIE | 193.7 |
+| AMD Radeon VII         | 363.5 |
+| AMD Instinct MI50s     | 426.9-436.7 |
+
 ```
 hermann@W-2225:~$ ./benchmark_sqrt 0
 Device ID 0 (Tesla P100-PCIE-16GB) UUID: GPU-8225733aafcc75d8e31bec550b39eb2e
