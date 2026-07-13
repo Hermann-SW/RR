@@ -7,10 +7,10 @@ hipcc -O3 -arch=sm_60 -x cu $f.cpp -o $f      # NVIDIA Tesla P100
 ```
 
 Similar [AVX512 synthetic benchmark](https://gist.github.com/Hermann-SW/c4e40e823d274d03094d5e6d5071017d?permalink_comment_id=6237349#gistcomment-6237349):
-| CPU       | #core | [double Gsqrt/s] |
-|----------:|------:|--------:|
-| AMD 7950X | 16    | 43.5 |
-| AMD 9950X | 16    | 90.7 |
+| CPU       | #core | [double Gsqrt/s] | |TSP tourlength|
+|----------:|------:|--------:|-|-:|
+| AMD 7950X | 16    | 43.5 | |39.7|
+| AMD 9950X | 16    | 90.7 | |83.7|
 
 [benchmark_sqrt.cpp](./benchmark_sqrt.cpp) reports for
 | GPU                    | #CU/#SM | [double Gsqrt/s] |
