@@ -13,11 +13,12 @@ Similar [AVX512 synthetic benchmark](https://gist.github.com/Hermann-SW/c4e40e82
 | AMD 9950X | 16    | 90.7 | |83.7|
 
 [benchmark_sqrt.cpp](./benchmark_sqrt.cpp) reports for
-| GPU                    | #CU/#SM | [double Gsqrt/s] |
-|-----------------------:|--------:|--------:|
-| NVIDIA Tesla P100 PCIE | 56      | 193.7 |
-| AMD Radeon VII         | 60      | 363.5 |
-| AMD Instinct MI50s     | 60      | 426.9-436.7 |
+| GPU                    | #CU/#SM | [double Gsqrt/s] | 200 loops |
+|-----------------------:|--------:|--------:|-------------------:|
+| NVIDIA Tesla P100 PCIE | 56      | 193.7 |             205.2    |
+| AMD Radeon VII         | 60      | 363.5 |             557.6    |
+| AMD Radeon Pro VII     | 60      | 417.3 |            1052.3    |
+| AMD Instinct MI50s     | 60      | 426.9-436.7 |                |
 
 ```
 hermann@W-2225:~$ ./benchmark_sqrt 0
