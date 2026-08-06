@@ -24,6 +24,7 @@ hermann@7600x:~$
 #include <vector>
 #include <chrono>  // NOLINT [build/c++11]
 #include <cmath>
+#include <format>
 
 #if defined(__HIP_PLATFORM_NVIDIA__)
     #include <cuda_runtime.h>
@@ -150,8 +151,8 @@ int main(int argc, const char *argv[]) {
     std::cout << "Execution Completed Successfully." << std::endl;
     std::cout << "Execution Time: " << seconds << " seconds" << std::endl;
     std::cout << "Total Sqrt Operations: " << total_sqrts << std::endl;
-    std::cout << "Verification Check (Last Element): " << h_out[N-1]
-              << std::endl;
+    std::cout << "Verification Check (Last Element): "
+              << std::format("{}", h_out[N-1]) << std::endl;
     std::cout << gflops << " double Gsqrt/s " << std::endl;
 
     (void) hipEventDestroy(start);
