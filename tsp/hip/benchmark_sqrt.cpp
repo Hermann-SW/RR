@@ -34,12 +34,13 @@ hermann@7600x:~$
 
 __global__ void genuine_sqrt_kernel(const double* __restrict__ d_in,
                                     double* __restrict__ d_out,
-                                    int N) {
+                                    int N, int loops) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N) {
         double val = d_in[idx];
 
+      for(int i=0; i<loops; ++i) {
         val = SQRT(val);
         val = SQRT(val + 1.0);
         val = SQRT(val + 2.0);
@@ -50,14 +51,15 @@ __global__ void genuine_sqrt_kernel(const double* __restrict__ d_in,
         val = SQRT(val + 7.0);
         val = SQRT(val + 8.0);
         val = SQRT(val + 9.0);
-
+      }
         d_out[idx] = val;
     }
 }
 
 int main(int argc, const char *argv[]) {
     const int N = 400'000'000;
-    const int SQRTS_PER_THREAD = 10;
+    int loops = (argc == 2) ? 1 : atoi(argv[2]);
+    const int SQRTS_PER_THREAD = 10*loops;
     size_t bytes = N * sizeof(double);
 
     int deviceId = (argc == 1) ? 0 : atoi(argv[1]);
@@ -130,7 +132,7 @@ int main(int argc, const char *argv[]) {
     (void) hipEventRecord(start, nullptr);
 
     hipLaunchKernelGGL(genuine_sqrt_kernel, dim3(blocks),
-                       dim3(THREADS_PER_BLOCK), 0, nullptr, d_in, d_out, N);
+                       dim3(THREADS_PER_BLOCK), 0, nullptr, d_in, d_out, N, loops);
 
     (void) hipEventRecord(stop, nullptr);
     (void) hipEventSynchronize(stop);
