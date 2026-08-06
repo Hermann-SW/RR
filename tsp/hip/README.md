@@ -17,7 +17,7 @@ Similar [AVX512 synthetic benchmark](https://gist.github.com/Hermann-SW/c4e40e82
 |-----------------------:|--------:|--------:|-------------------:|
 | NVIDIA Tesla P100 PCIE | 56      | 193.7 |             205.2    |
 | AMD Radeon VII         | 60      | 363.5 |             557.6    |
-| AMD Radeon Pro VII     | 60      | 417.3 |            1052.3    |
+| AMD Radeon Pro VII     | 60      | 417.3 |            1052.4    |
 | AMD Instinct MI50s     | 60      | 426.9-436.7 |                |
 
 ```
@@ -147,4 +147,21 @@ Total Sqrt Operations: 4e+09
 Verification Check (Last Element): 3.51286
 427.711 double Gsqrt/s 
 hermann@7600x:~$ 
+```
+
+
+With 200 loops of 10 sqrts each:  
+```
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./benchmark_sqrt 0 200
+Device ID 0 (AMD Radeon (TM) Pro VII) UUID: GPU-bf1478a17337ecdb
+Number of CUs/SMs: 60
+Allocating 6103 MB of VRAM...
+Launching Kernel across 1666667 thread blocks...
+--------------------------------------------------------
+Execution Completed Successfully.
+Execution Time: 0.760156 seconds
+Total Sqrt Operations: 8e+11
+Verification Check (Last Element): 3.51283
+1052.42 double Gsqrt/s 
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ 
 ```
