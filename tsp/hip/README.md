@@ -18,7 +18,7 @@ Similar [AVX512 synthetic benchmark](https://gist.github.com/Hermann-SW/c4e40e82
 | NVIDIA Tesla P100 PCIE | 56      | 193.7 |             205.2    |
 | AMD Radeon VII         | 60      | 363.5 |             557.6    |
 | AMD Radeon Pro VII     | 60      | 417.3 |            1052.4    |
-| AMD Instinct MI50s     | 60      | 426.9-436.7 |                |
+| AMD Instinct MI50s     | 60      | 426.9-436.7 | 1053.2-1064.6  |
 
 ```
 hermann@W-2225:~$ ./benchmark_sqrt 0
