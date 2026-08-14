@@ -2,6 +2,18 @@
 ## optimal TSP tour length benchmark
 
 [opt_tour_length_benchmark.cpp](opt_tour_length_benchmark.cpp)
+
+GPU performances for mona-lisa100K benchmark:
+GPU           | Total GPU Kernel Runtime [s] | Throughput [Gsqrt/s]| performance FP64 [TFLOPS]
+--------------|-----------------------------:|--------------------:|-------------------------:
+Tesla P100    |7.70627                       |129.76               |                    4.763
+Instinct MI50 |7.94854                       |125.81               |                    6.705
+Radeon Pro VII|7.99221                       |125.12               |                    6.528
+Radeon VII    |12.2013                       |81.96                |                    3.360
+Tesla K80     |32.0536                       |31.20                |               (2×) 1.371
+RTX 5060 OC   |96.5769                       |10.35                |                    0.302
+
+
 ```
 hermann@Radeon-pro-vii:~/RR/tsp/hip$ make opt_tour_length_benchmark 
 hipcc -O3 -std=c++20 --offload-arch=gfx906 opt_tour_length_benchmark.cpp -o opt_tour_length_benchmark
@@ -19,6 +31,10 @@ Total Sum (10000000 Computations): 57571910000000
 -----------------------------------------------
 Total GPU Kernel Runtime     : 7990.98 ms (7.99098 s)
 Throughput                   : 125.14 Gsqrt/s
+hermann@Radeon-pro-vii:~/RR/tsp/hip$
+```
+
+```
 hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./opt_tour_length_benchmark ../../data/tsp/usa13509
 === Optimal TSP Tour Length Benchmark ===
 Total Tour Length Computations: 10000000
