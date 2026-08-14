@@ -1,7 +1,7 @@
 
 ## optimal TSP tour length benchmark
 
-[opt_tour_length_benchmark.cpp](opt_tour_length_benchmark)
+[opt_tour_length_benchmark.cpp](opt_tour_length_benchmark.cpp)
 ```
 hermann@Radeon-pro-vii:~/RR/tsp/hip$ make opt_tour_length_benchmark 
 hipcc -O3 -std=c++20 --offload-arch=gfx906 opt_tour_length_benchmark.cpp -o opt_tour_length_benchmark
