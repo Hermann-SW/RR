@@ -67,6 +67,7 @@ int dist(const coord_t& from, const coord_t& to) {
     case GEO: return geo(from, to);
     default: assert(!"edge_weight_type not implemented");
   }
+  return -1;  // cannot be reached, silence nvcc called by hipcc
 }
 
 std::ifstream& operator >> (std::ifstream& in, coord_t &c1) {

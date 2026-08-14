@@ -4,7 +4,13 @@ CXXFLAGS := -O3 -std=c++20 -Wall -Wextra -pedantic
 LDLIBS   := -lstdc++ -lm
 
 HIPCC    := hipcc
-HIPFLAGS := -O3 -std=c++20 --offload-arch=gfx906
+HIP_PLATFORM ?= $(shell hipconfig --platform 2>/dev/null || echo amd)
+ifeq ($(HIP_PLATFORM), nvidia)
+    ARCH_FLAGS := -arch=sm_60  # Tesla P100
+else
+    ARCH_FLAGS := --offload-arch=gfx906  # Instinct MI50 & Radeon [Pro] VII
+endif
+HIPFLAGS := -O3 -std=c++20 $(ARCH_FLAGS)
 
 # Targets
 CPU_TARGETS := load_test gen.ml100K.UINT16_L

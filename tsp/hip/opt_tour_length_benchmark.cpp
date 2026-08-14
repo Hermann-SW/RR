@@ -66,7 +66,11 @@ __global__ void compute_tour_length_kernel(
     tour_length += static_cast<uint32_t>(0.5 + closing_dist);
 
     // 3. Accumulate thread's computed tour length into global total
+#if defined(__HIP_PLATFORM_NVIDIA__)
+    atomicAdd((unsigned long long*)d_total_sum, (unsigned long long)tour_length);
+#else
     atomicAdd(d_total_sum, tour_length);
+#endif
 }
 
 int main(int argc, char *argv[]) {
