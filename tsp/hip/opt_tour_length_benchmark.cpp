@@ -153,5 +153,7 @@ int main(int argc, char *argv[]) {
     HIP_CHECK(hipEventDestroy(start));
     HIP_CHECK(hipEventDestroy(stop));
 
+    delete[] dopt;
+
     return 0;
 }
