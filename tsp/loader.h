@@ -21,7 +21,7 @@ int opt_length = -1;
 
 
 inline int nint(double d) { return static_cast<int>(0.5 + d); }
-// http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
+// https://web.archive.org/web/20250903091423/https://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/tsp95.pdf#page=6
 int euc_2d(const coord_t& from, const coord_t& to) {
   double xd = from.first - to.first;
   double yd = from.second - to.second;
