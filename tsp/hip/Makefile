@@ -1,11 +1,27 @@
+# Compilers & Flags
+CXX      := g++
+CXXFLAGS := -O3 -std=c++20 -Wall -Wextra -pedantic
+LDLIBS   := -lstdc++ -lm
 
-all: load_test gen.ml100K.UINT16_L
+HIPCC    := hipcc
+HIPFLAGS := -O3 -std=c++20 --offload-arch=gfx906
 
-load_test: load_test.cpp ../loader.h
-	g++ -O3 -std=c++20  -Wall -Wextra -pedantic load_test.cpp -o load_test -lstdc++ -lm
+# Targets
+CPU_TARGETS := load_test gen.ml100K.UINT16_L
+GPU_TARGETS := opt_tour_length_benchmark
+ALL_TARGETS := $(CPU_TARGETS) $(GPU_TARGETS)
 
-gen.ml100K.UINT16_L: gen.ml100K.UINT16_L.cpp ../loader.h
-	g++ -O3 -std=c++20  -Wall -Wextra -pedantic gen.ml100K.UINT16_L.cpp -o gen.ml100K.UINT16_L -lstdc++ -lm
+.PHONY: all clean
+
+all: $(ALL_TARGETS)
+
+# C++ binaries (share identical flags and header dependency)
+$(CPU_TARGETS): %: %.cpp ../loader.h
+	$(CXX) $(CXXFLAGS) $< -o $@ $(LDLIBS)
+
+# HIP/GPU binary
+opt_tour_length_benchmark: opt_tour_length_benchmark.cpp
+	$(HIPCC) $(HIPFLAGS) $< -o $@
 
 clean:
-	rm -f load_test gen.ml100K.UINT16_L ml100K.UINT16_L.bin
+	rm -f $(ALL_TARGETS) ml100K.UINT16_L.bin
