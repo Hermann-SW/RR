@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/local/cuda-11.8/bin/nvcc -D__HIP_PLATFORM_NVIDIA__=1 -O3 -std=c++17 -arch=sm_37 -I. -x cu opt_tour_length_benchmark.cpp -o opt_tour_length_benchmark

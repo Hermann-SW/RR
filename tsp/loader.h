@@ -76,7 +76,7 @@ std::ifstream& operator >> (std::ifstream& in, coord_t &c1) {
 
 std::string value(std::ifstream& src, const std::string& pre) {
   std::string line;
-  do { getline(src, line); assert(!src.eof()); } while (!line.starts_with(pre));
+  do { getline(src, line); assert(!src.eof()); } while (line.rfind(pre, 0) != 0);
 
   if (line.find(":") == line.npos)  return "";
 
