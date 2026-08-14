@@ -1,3 +1,43 @@
+
+## optimal TSP tour length benchmark
+
+[opt_tour_length_benchmark.cpp](opt_tour_length_benchmark)
+```
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ make opt_tour_length_benchmark 
+hipcc -O3 -std=c++20 --offload-arch=gfx906 opt_tour_length_benchmark.cpp -o opt_tour_length_benchmark
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./opt_tour_length_benchmark ../../data/tsp/extra/mona-lisa100K
+=== Optimal TSP Tour Length Benchmark ===
+Total Tour Length Computations: 10000000
+Total Cities per Tour         : 100000
+Total Distance Calculations   : 1000000000000
+
+Launching Kernel across 10000000 threads...
+
+=================== RESULTS ===================
+Single Tour Length           : 5757191
+Total Sum (10000000 Computations): 57571910000000
+-----------------------------------------------
+Total GPU Kernel Runtime     : 7990.98 ms (7.99098 s)
+Throughput                   : 125.14 Gsqrt/s
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./opt_tour_length_benchmark ../../data/tsp/usa13509
+=== Optimal TSP Tour Length Benchmark ===
+Total Tour Length Computations: 10000000
+Total Cities per Tour         : 13509
+Total Distance Calculations   : 135090000000
+
+Launching Kernel across 10000000 threads...
+
+=================== RESULTS ===================
+Single Tour Length           : 19982859
+Total Sum (10000000 Computations): 199828590000000
+-----------------------------------------------
+Total GPU Kernel Runtime     : 1081.3 ms (1.0813 s)
+Throughput                   : 124.93 Gsqrt/s
+hermann@Radeon-pro-vii:~/RR/tsp/hip$ 
+```
+
+## synthetic benchmark
+
 This is synthetic benchmark to measure peak double sqrt performance.
 
 ```
