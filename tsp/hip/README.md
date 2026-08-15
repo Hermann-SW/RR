@@ -32,7 +32,9 @@ Total Sum (10000000 Computations): 57571910000000
 Total GPU Kernel Runtime     : 7990.98 ms (7.99098 s)
 Throughput                   : 125.14 Gsqrt/s
 hermann@Radeon-pro-vii:~/RR/tsp/hip$
+```
 
+```
 hermann@9950x:~/RR/tsp/hip$ ./compile_K80 
 nvcc warning : The 'compute_35', 'compute_37', 'sm_35', and 'sm_37' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
 hermann@9950x:~/RR/tsp/hip$ ./opt_tour_length_benchmark ../../data/tsp/extra/mona-lisa100K
