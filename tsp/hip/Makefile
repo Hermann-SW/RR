@@ -14,7 +14,7 @@ HIPFLAGS := -O3 -std=c++20 $(ARCH_FLAGS)
 
 # Targets
 CPU_TARGETS := load_test gen.ml100K.UINT16_L
-GPU_TARGETS := opt_tour_length_benchmark
+GPU_TARGETS := opt_tour_length_benchmark opt_tour_length_benchmark_fast
 ALL_TARGETS := $(CPU_TARGETS) $(GPU_TARGETS)
 
 .PHONY: all clean
@@ -28,6 +28,9 @@ $(CPU_TARGETS): %: %.cpp ../loader.h
 # HIP/GPU binary
 opt_tour_length_benchmark: opt_tour_length_benchmark.cpp
 	$(HIPCC) $(HIPFLAGS) $< -o $@
+
+opt_tour_length_benchmark_fast: opt_tour_length_benchmark.cpp
+	$(HIPCC) $(HIPFLAGS) -DFAST_SQRT $< -o $@
 
 clean:
 	rm -f $(ALL_TARGETS) ml100K.UINT16_L.bin

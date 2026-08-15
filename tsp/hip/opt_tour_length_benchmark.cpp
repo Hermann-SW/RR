@@ -17,6 +17,10 @@ std::vector<city_t> opt;
 
 constexpr uint64_t NUM_EVALS = 10000000;
 
+__device__ inline double gpu_sqrt(double val) {
+    return val * rsqrt(val);
+}
+
 #define HIP_CHECK(command) \
     do { \
         hipError_t status = command; \
@@ -49,7 +53,11 @@ __global__ void compute_tour_length_kernel(
         double xd = x1 - x2;
         double yd = y1 - y2;
 
+#ifdef FAST_SQRT
+        double dist = gpu_sqrt(xd * xd + yd * yd);
+#else
         double dist = sqrt(xd * xd + yd * yd);
+#endif
         tour_length += static_cast<uint32_t>(0.5 + dist);
     }
 
@@ -62,7 +70,11 @@ __global__ void compute_tour_length_kernel(
     double xd = x_last - x_first;
     double yd = y_last - y_first;
 
+#ifdef FAST_SQRT
+    double closing_dist = gpu_sqrt(xd * xd + yd * yd);
+#else
     double closing_dist = sqrt(xd * xd + yd * yd);
+#endif
     tour_length += static_cast<uint32_t>(0.5 + closing_dist);
 
     // 3. Accumulate thread's computed tour length into global total
