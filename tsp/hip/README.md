@@ -34,6 +34,7 @@ Throughput                   : 125.14 Gsqrt/s
 hermann@Radeon-pro-vii:~/RR/tsp/hip$
 ```
 
+[compile_K80](compile_K80) does compile with nvcc instead hipcc, uses local [hip/hip_runtime.h](hip/hip_runtime.h) because of "-I.":
 ```
 hermann@9950x:~/RR/tsp/hip$ ./compile_K80 
 nvcc warning : The 'compute_35', 'compute_37', 'sm_35', and 'sm_37' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
@@ -54,6 +55,7 @@ Throughput                   : 31.20 Gsqrt/s
 hermann@9950x:~/RR/tsp/hip$
 ```
 
+usa13509 instead mona-lisa00K:
 ```
 hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./opt_tour_length_benchmark ../../data/tsp/usa13509
 === Optimal TSP Tour Length Benchmark ===
