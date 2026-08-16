@@ -96,7 +96,12 @@ __global__ void find_best_insertion_kernel(
 
     // Global atomic update
     if (threadIdx.x == 0) {
+#if defined(__HIP_PLATFORM_NVIDIA__)
+        atomicAdd((unsigned long long*) d_best,    // NOLINT
+                  (unsigned long long) s_min[0]);  // NOLINT
+#else
         atomicMin(d_best, s_min[0]);
+#endif
     }
 }
 
@@ -147,7 +152,12 @@ __global__ void compute_tour_length_kernel(
     double yd = y1 - y2;
 
     uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt(xd * xd + yd * yd));
+#if defined(__HIP_PLATFORM_NVIDIA__)
+    atomicAdd((unsigned long long*) d_tour_length,                // NOLINT
+              (unsigned long long) static_cast<uint64_t>(dist));  // NOLINT
+#else
     atomicAdd(d_tour_length, static_cast<uint64_t>(dist));
+#endif
 }
 
 int main() {
