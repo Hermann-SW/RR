@@ -1,5 +1,6 @@
 // NOLINT(legal/copyright)
 #include <hip/hip_runtime.h>
+
 #include <iostream>
 #include <iomanip>
 #include <cstdint>
@@ -10,6 +11,7 @@
 #include "../loader.h"
 
 double C[100000][2];
+std::vector<coord_t> Coords;
 
 #define HIP_CHECK(command) \
     do { \
@@ -20,8 +22,6 @@ double C[100000][2];
             exit(EXIT_FAILURE); \
         } \
     } while (0)
-
-std::vector<coord_t> Coords;
 
 constexpr uint64_t NUM_CITIES = 100000;
 constexpr uint64_t TOTAL_ENTRIES = NUM_CITIES * NUM_CITIES;
@@ -61,7 +61,8 @@ __global__ void benchmark_sqrt_registers(
 
     // Single atomic update per thread at the end
 #if defined(__HIP_PLATFORM_NVIDIA__)
-    atomicAdd((unsigned long long*)d_checksum, (unsigned long long) local_checksum);
+    atomicAdd((unsigned long long*) d_checksum,      // NOLINT
+              (unsigned long long) local_checksum);  // NOLINT
 #else
      atomicAdd(d_checksum, local_checksum);
 #endif
@@ -95,7 +96,8 @@ __global__ void benchmark_builtin_registers(
     }
 
 #if defined(__HIP_PLATFORM_NVIDIA__)
-    atomicAdd((unsigned long long*)d_checksum, (unsigned long long) local_checksum);
+    atomicAdd((unsigned long long*) d_checksum,      // NOLINT
+              (unsigned long long) local_checksum);  // NOLINT
 #else
      atomicAdd(d_checksum, local_checksum);
 #endif
@@ -134,7 +136,8 @@ __global__ void verify_registers(
     }
 
 #if defined(__HIP_PLATFORM_NVIDIA__)
-    atomicAdd((unsigned long long*)d_matches, (unsigned long long) local_matches);
+    atomicAdd((unsigned long long*) d_matches,      // NOLINT
+              (unsigned long long) local_matches);  // NOLINT
 #else
      atomicAdd(d_matches, local_matches);
 #endif
