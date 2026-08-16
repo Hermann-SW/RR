@@ -75,15 +75,16 @@ hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
 
 Took a little longer, now after having finished 2nd semester of Mathematics at Heidelberg University (in my 60s),
 and especially after having attended
-master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <1.1s(!!) — above (sequential) RR_all() took 300s:  
+master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.84s(!!) — above (sequential) RR_all() took 300.86s:  
 [tsp/hip/parallel_recreate_all.cpp](tsp/hip/parallel_recreate_all.cpp)
 ```
-hermann@Radeon-pro-vii:~/RR/tsp/hip$ ./parallel_recreate_all 
-=== GPU Multi-Core Parallel RecreateALL Benchmark ===
+hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./persitant 
+=== Persistent GPU Kernel Parallel RecreateALL Benchmark ===
 Total Cities        : 100000
 Total Runs Requested: 25
+Cooperative Grid    : 300 blocks x 256 threads (60 CUs)
 
-Executing 25 cooperative GPU runs...
+Executing 25 persistent GPU runs...
 Completed Run 10/25 | Latest Tour Length: 6184551
 Completed Run 20/25 | Latest Tour Length: 6188901
 Completed Run 25/25 | Latest Tour Length: 6182812
@@ -94,10 +95,10 @@ Minimum Tour Length (Best) : 6182812
 Mean Tour Length           : 6187246.72
 Maximum Tour Length (Worst): 6191093
 -----------------------------------------------
-Total GPU Runtime          : 26939.42 ms (26.94 s)
-Average Time per Tour Run  : 1077.58 ms
-Throughput                 : 13.92 Gsqrt/s
-hermann@Radeon-pro-vii:~/RR/tsp/hip$ 
+Total GPU Runtime          : 20878.48 ms (20.88 s)
+Average Time per Tour Run  : 835.14 ms
+Throughput                 : 17.96 Gsqrt/s
+hermann@7600x:~/RR/tsp/hip$
 ```
 
 ![tsp/res/mona-lisa100K.part.png](tsp/res/mona-lisa100K.part.png)
