@@ -35,7 +35,6 @@ __device__ inline double gpu_sqrt(double val) {
 __global__ void benchmark_sqrt_registers(
     const double (* __restrict__ d_C)[2],
     uint64_t* __restrict__ d_checksum) {
-    #pragma clang fp contract(off)
 
     uint64_t i = static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (i >= NUM_CITIES) return;
@@ -61,14 +60,17 @@ __global__ void benchmark_sqrt_registers(
     }
 
     // Single atomic update per thread at the end
-    atomicAdd(d_checksum, local_checksum);
+#if defined(__HIP_PLATFORM_NVIDIA__)
+    atomicAdd((unsigned long long*)d_checksum, (unsigned long long) local_checksum);
+#else
+     atomicAdd(d_checksum, local_checksum);
+#endif
 }
 
 // 2. Pure Register Benchmark: gpu_sqrt()
 __global__ void benchmark_builtin_registers(
     const double (* __restrict__ d_C)[2],
     uint64_t* __restrict__ d_checksum) {
-    #pragma clang fp contract(off)
 
     uint64_t i = static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (i >= NUM_CITIES) return;
@@ -92,14 +94,17 @@ __global__ void benchmark_builtin_registers(
         local_checksum += d_gpu;
     }
 
-    atomicAdd(d_checksum, local_checksum);
+#if defined(__HIP_PLATFORM_NVIDIA__)
+    atomicAdd((unsigned long long*)d_checksum, (unsigned long long) local_checksum);
+#else
+     atomicAdd(d_checksum, local_checksum);
+#endif
 }
 
 // 3. Verification Kernel: Compare both on-the-fly in registers
 __global__ void verify_registers(
     const double (* __restrict__ d_C)[2],
     uint64_t* __restrict__ d_matches) {
-    #pragma clang fp contract(off)
 
     uint64_t i = static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (i >= NUM_CITIES) return;
@@ -128,7 +133,11 @@ __global__ void verify_registers(
         }
     }
 
-    atomicAdd(d_matches, local_matches);
+#if defined(__HIP_PLATFORM_NVIDIA__)
+    atomicAdd((unsigned long long*)d_matches, (unsigned long long) local_matches);
+#else
+     atomicAdd(d_matches, local_matches);
+#endif
 }
 
 int main() {
