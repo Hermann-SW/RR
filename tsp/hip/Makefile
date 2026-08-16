@@ -14,7 +14,7 @@ HIPFLAGS := -O3 -std=c++20 $(ARCH_FLAGS)
 
 # Targets
 CPU_TARGETS := load_test gen.ml100K.UINT16_L
-GPU_TARGETS := opt_tour_length_benchmark opt_tour_length_benchmark_fast sqrt_test register_sqrt_benchmark
+GPU_TARGETS := opt_tour_length_benchmark opt_tour_length_benchmark_fast sqrt_test register_sqrt_benchmark parallel_recreate_all
 ALL_TARGETS := $(CPU_TARGETS) $(GPU_TARGETS)
 
 .PHONY: all clean
@@ -36,6 +36,9 @@ sqrt_test: sqrt_test.cpp
 	$(HIPCC) $(HIPFLAGS) $< -o $@
 
 register_sqrt_benchmark: register_sqrt_benchmark.cpp
+	$(HIPCC) $(HIPFLAGS) $< -o $@
+
+parallel_recreate_all: parallel_recreate_all.cpp
 	$(HIPCC) $(HIPFLAGS) $< -o $@
 
 clean:
