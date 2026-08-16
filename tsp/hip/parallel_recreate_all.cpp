@@ -97,7 +97,7 @@ __global__ void find_best_insertion_kernel(
     // Global atomic update
     if (threadIdx.x == 0) {
 #if defined(__HIP_PLATFORM_NVIDIA__)
-        atomicAdd((unsigned long long*) d_best,    // NOLINT
+        atomicMin((unsigned long long*) d_best,    // NOLINT
                   (unsigned long long) s_min[0]);  // NOLINT
 #else
         atomicMin(d_best, s_min[0]);
