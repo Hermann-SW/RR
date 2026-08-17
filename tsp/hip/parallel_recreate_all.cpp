@@ -193,9 +193,6 @@ __global__ void persistent_recreate_all_kernel(
         double2 p1 = d_C[u_city];
         double2 p2 = d_C[v_city];
 
-        double xd = p1.x - p2.x;
-        double yd = p1.y - p2.y;
-
         uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt2(p1, p2));
 #if defined(__HIP_PLATFORM_NVIDIA__)
         atomicAdd((unsigned long long*) d_tour_length,                // NOLINT
