@@ -75,7 +75,7 @@ hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
 
 Took a little longer, now after having finished 2nd semester of Mathematics at Heidelberg University (in my 60s),
 and especially after having attended
-master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.79s(!!) — above (sequential) RR_all() took 300.86s. Persistent kernel, use of LDS (Local Data Share) and vectorization, usage reduced further and further:  
+master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.79s(!!) — above (sequential) RR_all() took 300.86s. Persistent kernel and usage of LDS (Local Data Share) and vectorization reduced average time per tour run further and further:  
 [tsp/hip/parallel_recreate_all.cpp](tsp/hip/parallel_recreate_all.cpp)
 ```
 hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./parallel_recreate_all 
