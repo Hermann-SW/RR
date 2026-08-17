@@ -34,6 +34,11 @@ __device__ inline double gpu_sqrt(double val) {
     return val * rsqrt(val);
 }
 
+__device__ inline double gpu_sqrt2(double2 p_coord, double2 u_coord) {
+    return  gpu_sqrt((p_coord.x - u_coord.x) * (p_coord.x - u_coord.x) +
+                     (p_coord.y - u_coord.y) * (p_coord.y - u_coord.y));
+}
+
 constexpr int BLOCK_SIZE = 256;
 
 // Optimized persistent kernel with LDS Tiling & Vectorized 128-Bit Loads
@@ -41,7 +46,7 @@ __global__ void persistent_recreate_all_kernel(
     const uint32_t* __restrict__ d_city_order,
     uint32_t* __restrict__ d_tour_A,
     uint32_t* __restrict__ d_tour_B,
-    const double2* __restrict__ d_C, // Cast to double2 for 128-bit vector loads
+    const double2* __restrict__ d_C,  // double2 cast for 128-bit vector loads
     uint64_t* __restrict__ d_best,
     uint64_t* __restrict__ d_tour_length) {
 
@@ -49,7 +54,7 @@ __global__ void persistent_recreate_all_kernel(
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t stride = gridDim.x * blockDim.x;
 
-    // LDS union to recycle 2 KB shared memory between tiling and block reduction
+    // LDS union (recycle 2 KB shared memory between tiling and block reduction)
     __shared__ union {
         uint32_t s_curr_tour[BLOCK_SIZE + 1];
         uint64_t s_min[BLOCK_SIZE];
@@ -72,14 +77,15 @@ __global__ void persistent_recreate_all_kernel(
         const uint32_t* d_curr = (k % 2 == 1) ? d_tour_A : d_tour_B;
         uint32_t* d_next = (k % 2 == 1) ? d_tour_B : d_tour_A;
 
-        // Fetch inserted city coordinates into VGPR registers (128-bit vector load)
+        // to insert city coordinates into VGPR registers (128-bit vector load)
         double2 u_coord = d_C[u];
 
         uint64_t min_cost = ULLONG_MAX;
         uint32_t best_i = 0;
 
         // Grid-stride loop over LDS tiles
-        for (uint32_t tile_start = blockIdx.x * BLOCK_SIZE; tile_start < k; tile_start += stride) {
+        for (uint32_t tile_start = blockIdx.x * BLOCK_SIZE; tile_start < k;
+             tile_start += stride) {
             uint32_t global_i = tile_start + threadIdx.x;
 
             // 1. Coalesced load of tour indices into LDS
@@ -90,14 +96,15 @@ __global__ void persistent_recreate_all_kernel(
             // 2. Cache boundary element for tour continuity (i+1 wrap-around)
             if (threadIdx.x == 0) {
                 if (tile_start + BLOCK_SIZE < k) {
-                    smem.s_curr_tour[BLOCK_SIZE] = d_curr[tile_start + BLOCK_SIZE];
+                    smem.s_curr_tour[BLOCK_SIZE]
+                        = d_curr[tile_start + BLOCK_SIZE];
                 } else if (tile_start < k) {
                     smem.s_curr_tour[k - tile_start] = d_curr[0];
                 }
             }
             __syncthreads();
 
-            // 3. Compute cost using LDS cached indices & 128-bit vector coordinate loads
+            // 3. Compute cost (LDS cached indices & 128-bit vector coord loads)
             if (global_i < k) {
                 uint32_t p = smem.s_curr_tour[threadIdx.x];
                 uint32_t v = smem.s_curr_tour[threadIdx.x + 1];
@@ -105,19 +112,17 @@ __global__ void persistent_recreate_all_kernel(
                 double2 p_coord = d_C[p];
                 double2 v_coord = d_C[v];
 
-                double d_pu = gpu_sqrt((p_coord.x - u_coord.x) * (p_coord.x - u_coord.x) + 
-                                       (p_coord.y - u_coord.y) * (p_coord.y - u_coord.y));
-                double d_uv = gpu_sqrt((u_coord.x - v_coord.x) * (u_coord.x - v_coord.x) + 
-                                       (u_coord.y - v_coord.y) * (u_coord.y - v_coord.y));
-                double d_pv = gpu_sqrt((p_coord.x - v_coord.x) * (p_coord.x - v_coord.x) + 
-                                       (p_coord.y - v_coord.y) * (p_coord.y - v_coord.y));
+                double d_pu = gpu_sqrt2(p_coord, u_coord);
+                double d_uv = gpu_sqrt2(u_coord, v_coord);
+                double d_pv = gpu_sqrt2(p_coord, v_coord);
 
                 int64_t extra_cost = static_cast<int64_t>(
                     static_cast<uint16_t>(0.5 + d_pu) +
                     static_cast<uint16_t>(0.5 + d_uv) -
                     static_cast<uint16_t>(0.5 + d_pv));
 
-                uint64_t biased_cost = static_cast<uint64_t>(extra_cost + 2000000000LL);
+                uint64_t biased_cost
+                    = static_cast<uint64_t>(extra_cost + 2000000000LL);
 
                 if (biased_cost < min_cost) {
                     min_cost = biased_cost;
@@ -146,7 +151,8 @@ __global__ void persistent_recreate_all_kernel(
         // Global atomic reduction
         if (threadIdx.x == 0) {
 #if defined(__HIP_PLATFORM_NVIDIA__)
-            atomicMin((unsigned long long*) d_best, (unsigned long long) smem.s_min[0]);
+            atomicMin((unsigned long long*) d_best,         // NOLINT
+                      (unsigned long long) smem.s_min[0]);  // NOLINT
 #else
             atomicMin(d_best, smem.s_min[0]);
 #endif
@@ -178,11 +184,11 @@ __global__ void persistent_recreate_all_kernel(
     }
 
     // Phase 3: Compute final tour length
-    const uint32_t* d_final_tour = ((NUM_CITIES - 1) % 2 == 1) ? d_tour_B : d_tour_A;
+    const uint32_t* d_final_tour = ((NUM_CITIES-1)%2 == 1)?d_tour_B:d_tour_A;
 
     for (uint32_t i = idx; i < NUM_CITIES; i += stride) {
         uint32_t u_city = d_final_tour[i];
-        uint32_t v_city = (i + 1 == NUM_CITIES) ? d_final_tour[0] : d_final_tour[i + 1];
+        uint32_t v_city = (i+1 == NUM_CITIES)?d_final_tour[0]:d_final_tour[i+1];
 
         double2 p1 = d_C[u_city];
         double2 p2 = d_C[v_city];
@@ -190,10 +196,10 @@ __global__ void persistent_recreate_all_kernel(
         double xd = p1.x - p2.x;
         double yd = p1.y - p2.y;
 
-        uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt(xd * xd + yd * yd));
+        uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt2(p1, p2));
 #if defined(__HIP_PLATFORM_NVIDIA__)
-        atomicAdd((unsigned long long*) d_tour_length,
-                  (unsigned long long) static_cast<uint64_t>(dist));
+        atomicAdd((unsigned long long*) d_tour_length,                // NOLINT
+                  (unsigned long long) static_cast<uint64_t>(dist));  // NOLINT
 #else
         atomicAdd(d_tour_length, static_cast<uint64_t>(dist));
 #endif
@@ -209,7 +215,8 @@ int main() {
         C[i][1] = Coords[i].second;
     }
 
-    std::cout << "=== Persistent GPU Kernel Parallel RecreateALL Benchmark ===" << std::endl;
+    std::cout << "=== Persistent GPU Kernel Parallel RecreateALL Benchmark ==="
+              << std::endl;
     std::cout << "Total Cities        : " << NUM_CITIES << std::endl;
     std::cout << "Total Runs Requested: " << NUM_RUNS << std::endl;
 
@@ -220,22 +227,23 @@ int main() {
     HIP_CHECK(hipGetDeviceProperties(&prop, device));
 
     if (!prop.cooperativeLaunch) {
-        std::cerr << "Device does not support cooperative kernel launches!" << std::endl;
+        std::cerr << "Device does not support cooperative kernel launches!"
+                  << std::endl;
         return EXIT_FAILURE;
     }
 
-    // Calculate maximum active blocks per CU for cooperative grid synchronization
+    // Calculate max active blocks per CU for cooperative grid synchronization
     int block_size = 256;
     int num_blocks_per_cu = 0;
     HIP_CHECK(hipOccupancyMaxActiveBlocksPerMultiprocessor(
         &num_blocks_per_cu,
-        (void*)persistent_recreate_all_kernel,
+        reinterpret_cast<void*>(persistent_recreate_all_kernel),
         block_size,
         0));
 
     int num_blocks = prop.multiProcessorCount * num_blocks_per_cu;
-    std::cout << "Cooperative Grid    : " << num_blocks << " blocks x " 
-              << block_size << " threads (" << prop.multiProcessorCount 
+    std::cout << "Cooperative Grid    : " << num_blocks << " blocks x "
+              << block_size << " threads (" << prop.multiProcessorCount
               << " CUs)" << std::endl;
 
     // Allocate VRAM
@@ -253,7 +261,8 @@ int main() {
     HIP_CHECK(hipMalloc(&d_best, sizeof(uint64_t)));
     HIP_CHECK(hipMalloc(&d_tour_length, sizeof(uint64_t)));
 
-    HIP_CHECK(hipMemcpy(d_C, C, NUM_CITIES * 2 * sizeof(double), hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpy(d_C, C, NUM_CITIES * 2 * sizeof(double),
+                        hipMemcpyHostToDevice));
 
     std::vector<uint32_t> city_order(NUM_CITIES);
     std::iota(city_order.begin(), city_order.end(), 0);
@@ -268,26 +277,27 @@ int main() {
     HIP_CHECK(hipEventCreate(&start));
     HIP_CHECK(hipEventCreate(&stop));
 
-    std::cout << "\nExecuting " << NUM_RUNS << " persistent GPU runs..." << std::endl;
+    std::cout << "\nExecuting " << NUM_RUNS << " persistent GPU runs..."
+              << std::endl;
     HIP_CHECK(hipEventRecord(start));
 
     for (int run = 0; run < NUM_RUNS; ++run) {
         std::shuffle(city_order.begin(), city_order.end(), rng);
         HIP_CHECK(hipMemcpy(d_city_order, city_order.data(),
-                            NUM_CITIES * sizeof(uint32_t), hipMemcpyHostToDevice));
+                           NUM_CITIES*sizeof(uint32_t), hipMemcpyHostToDevice));
 
         // Launch single persistent kernel for the run
         void* args[] = {
-            (void*)&d_city_order,
-            (void*)&d_tour_A,
-            (void*)&d_tour_B,
-            (void*)&d_C, // Interpreted as const double2* inside kernel
-            (void*)&d_best,
-            (void*)&d_tour_length
+            reinterpret_cast<void*>(&d_city_order),
+            reinterpret_cast<void*>(&d_tour_A),
+            reinterpret_cast<void*>(&d_tour_B),
+            reinterpret_cast<void*>(&d_C),  // as const double2* inside kernel
+            reinterpret_cast<void*>(&d_best),
+            reinterpret_cast<void*>(&d_tour_length)
         };
 
         HIP_CHECK(hipLaunchCooperativeKernel(
-            (void*)persistent_recreate_all_kernel,
+            reinterpret_cast<void*>(persistent_recreate_all_kernel),
             dim3(num_blocks),
             dim3(block_size),
             args,
@@ -296,7 +306,8 @@ int main() {
 
         // Retrieve tour length (synchronizes stream implicit to memcpy)
         uint64_t h_len = 0;
-        HIP_CHECK(hipMemcpy(&h_len, d_tour_length, sizeof(uint64_t), hipMemcpyDeviceToHost));
+        HIP_CHECK(hipMemcpy(&h_len, d_tour_length, sizeof(uint64_t),
+                            hipMemcpyDeviceToHost));
 
         for (uint32_t k = 3; k < NUM_CITIES; ++k) {
             total_sqrts += (3 * k);
@@ -321,7 +332,8 @@ int main() {
 
     double mean_len = static_cast<double>(sum_len) / NUM_RUNS;
 
-    std::cout << "\n=================== RESULTS ===================" << std::endl;
+    std::cout << "\n=================== RESULTS ==================="
+              << std::endl;
     std::cout << "Total Runs Executed        : " << NUM_RUNS << std::endl;
     std::cout << "Minimum Tour Length (Best) : " << min_len << std::endl;
     std::cout << "Mean Tour Length           : " << std::fixed
