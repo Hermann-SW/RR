@@ -14,7 +14,6 @@
 
 namespace cg = cooperative_groups;
 
-double C[100000][2];
 std::vector<coord_t> Coords;
 
 #define HIP_CHECK(command) \
@@ -207,11 +206,6 @@ int main() {
     load<coord_t>("../../data/tsp/extra/mona-lisa100K.tsp", Coords);
     assert(100000 == Coords.size());
 
-    for (size_t i = 0; i < Coords.size(); ++i) {
-        C[i][0] = Coords[i].first;
-        C[i][1] = Coords[i].second;
-    }
-
     std::cout << "=== Persistent GPU Kernel Parallel RecreateALL Benchmark ==="
               << std::endl;
     std::cout << "Total Cities        : " << NUM_CITIES << std::endl;
@@ -258,7 +252,7 @@ int main() {
     HIP_CHECK(hipMalloc(&d_best, sizeof(uint64_t)));
     HIP_CHECK(hipMalloc(&d_tour_length, sizeof(uint64_t)));
 
-    HIP_CHECK(hipMemcpy(d_C, C, NUM_CITIES * 2 * sizeof(double),
+    HIP_CHECK(hipMemcpy(d_C, Coords.data(), NUM_CITIES * 2 * sizeof(double),
                         hipMemcpyHostToDevice));
 
     std::vector<uint32_t> city_order(NUM_CITIES);

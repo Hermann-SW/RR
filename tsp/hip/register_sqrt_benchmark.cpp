@@ -10,7 +10,6 @@
 
 #include "../loader.h"
 
-double C[100000][2];
 std::vector<coord_t> Coords;
 
 #define HIP_CHECK(command) \
@@ -147,11 +146,6 @@ int main() {
     load<coord_t>("../../data/tsp/extra/mona-lisa100K.tsp", Coords);
     assert(100000 == Coords.size());
 
-    for (int i = 0; i < Coords.size(); ++i) {
-        C[i][0] = Coords[i].first;
-        C[i][1] = Coords[i].second;
-    }
-
     std::cout << "=== Zero-VRAM 100,000 x 100,000 TSP Register Benchmark ==="
               << std::endl;
     std::cout << "Total Pairs to Evaluate: " << TOTAL_ENTRIES
@@ -173,7 +167,7 @@ int main() {
     HIP_CHECK(hipMemset(d_matches, 0, sizeof(uint64_t)));
 
     // Copy Coordinates to VRAM
-    HIP_CHECK(hipMemcpy(d_C, C, NUM_CITIES * 2 * sizeof(double),
+    HIP_CHECK(hipMemcpy(d_C, Coords.data(), NUM_CITIES * 2 * sizeof(double),
                         hipMemcpyHostToDevice));
 
     int threadsPerBlock = 256;
