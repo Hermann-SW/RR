@@ -38,7 +38,7 @@ __device__ inline double gpu_euc2d(double2 p_coord, double2 u_coord) {
                      (p_coord.y - u_coord.y) * (p_coord.y - u_coord.y));
 }
 
-constexpr int BLOCK_SIZE = 256;
+constexpr int BLOCK_SIZE = 512;
 
 // Optimized persistent kernel with LDS Tiling & Vectorized 128-Bit Loads
 __global__ void persistent_recreate_all_kernel(
@@ -53,7 +53,7 @@ __global__ void persistent_recreate_all_kernel(
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t stride = gridDim.x * blockDim.x;
 
-    // LDS union (recycle 2 KB shared memory between tiling and block reduction)
+    // LDS union (recycle 4 KB shared memory between tiling and block reduction)
     __shared__ union {
         uint32_t s_curr_tour[BLOCK_SIZE + 1];
         uint64_t s_min[BLOCK_SIZE];
@@ -224,7 +224,7 @@ int main() {
     }
 
     // Calculate max active blocks per CU for cooperative grid synchronization
-    int block_size = 256;
+    int block_size = BLOCK_SIZE;
     int num_blocks_per_cu = 0;
     HIP_CHECK(hipOccupancyMaxActiveBlocksPerMultiprocessor(
         &num_blocks_per_cu,
