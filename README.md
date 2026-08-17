@@ -78,7 +78,7 @@ and especially after having attended
 master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.84s(!!) — above (sequential) RR_all() took 300.86s:  
 [tsp/hip/parallel_recreate_all.cpp](tsp/hip/parallel_recreate_all.cpp)
 ```
-hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./persitant 
+hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./persistent 
 === Persistent GPU Kernel Parallel RecreateALL Benchmark ===
 Total Cities        : 100000
 Total Runs Requested: 25
