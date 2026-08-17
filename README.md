@@ -59,7 +59,7 @@ A lot new options, including [graphics display](https://github.com/Hermann-SW/RR
 
 ## Mona Lisa TSP Challenge
 
-Nice, first time view of mona-lisa100K.tsp problem with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible.
+Nice, first time view of mona-lisa100K.tsp problem (below) with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible.
 ```
 hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
 5757191             best known tour, lower bound 5757084
