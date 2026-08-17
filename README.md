@@ -7,7 +7,7 @@ Initially TSP implementation of Ruin&Recreate from [Record Breaking Optimization
 Sofar 111 TSP sample problems have been added, and length of most (92) of 108 optimal tours have been verified. See README.md documentation here:  
 [data/tsp/](data/tsp/)  
 
-Now code from pcb442.cpp gist is split and works. The new top level file is [tsp/greedy.cpp](tsp/greedy.cpp). And it already allows to load other than pcb442 TSP problems. I did 500 mutations for 13,509 cities problem usa13509 again with new code. Complete (5.6GHz!) output [here](tsp/greedy.usa13509.md). As discussed in [this posting](https://gist.github.com/Hermann-SW/1218d13dc7fb95aa90687ad8baa06787?permalink_comment_id=5673617#gistcomment-5673617) maximal time for the recreate step was 437ms (for Ruin and Recreate of 29.7% cities). Below output shows the time for the initial ```RR_all()``` as well, 872ms. After a bit more cleanup work, the recreate step will be parallelized onto 3,840 cores of one of my 9 Vega20 GPUs. Each core will have to do ```ceil(13509/3840)=4``` best insert computatations for "its" 4 cities (which can be done now easily because of use of newly used ```random_access_list``` datatype). Then in 12 more steps the minimum of the 3,840 minimal values can be determined and the CPU can take that and continue the Recreate loop.  
+Now code from pcb442.cpp gist is split and works. The new top level file is [tsp/greedy.cpp](tsp/greedy.cpp). And it already allows to load other than pcb442 TSP problems. I did 500 mutations for 13,509 cities problem usa13509 again with new code. Complete (5.6GHz!) output [here](tsp/greedy.usa13509.md). As discussed in [this posting](https://gist.github.com/Hermann-SW/1218d13dc7fb95aa90687ad8baa06787?permalink_comment_id=5673617#gistcomment-5673617) maximal time for the recreate step was 437ms (for Ruin and Recreate of 29.7% cities). Below output shows the time for the initial ```RR_all()``` as well, 872ms. After a bit more cleanup work, the recreate step will be parallelized onto 3,840 cores of one of my 9 Vega20 GPUs.
 
 Here top and bottom:
 ```
@@ -59,7 +59,7 @@ A lot new options, including [graphics display](https://github.com/Hermann-SW/RR
 
 ## Mona Lisa TSP Challenge
 
-Nice, first time view of mona-lisa100K.tsp problem with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible (ceil(100,000/3,840)=27 steps for a core to compute best fit cost of new city at "its" cities, then 12 steps to compute overall minimum of the 3,840 minimal costs). Not my fastest machine, but the only that could deal with the currently 58.1g resident RAM for greedy process (already reduced from 74.9g by storing the entries in distance matrix as ```int16_t``` instead of 32bit ```int``` — maximal mona-lisa100K.tsp distance is less than 30,000).
+Nice, first time view of mona-lisa100K.tsp problem with 100,000 cities (and [1,000 USD price money](https://www.math.uwaterloo.ca/tsp/data/ml/monalisa.html)) with Ruin and Recreate greedy solver. Initial RR_all() took 301 seconds. Soon I will parallelize the recreate step onto an AMD Vega20 type GPU with 3,840 cores — I can't wait to see the runtime reduction possible.
 ```
 hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
 5757191             best known tour, lower bound 5757084
@@ -75,14 +75,14 @@ hermann@E5-2680v4:~/RR/tsp$ time ./greedy -d -c ../data/tsp/extra/mona-lisa100K
 
 Took a little longer, now after having finished 2nd semester of Mathematics at Heidelberg University (in my 60s),
 and especially after having attended
-master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.84s(!!) — above (sequential) RR_all() took 300.86s:  
+master lecture "Hardware-aware scientific computing", with the help of gemini a full RecreateAll does take <0.79s(!!) — above (sequential) RR_all() took 300.86s. Persistent kernel and LDS (Local Data Share) usage reduced this further:  
 [tsp/hip/parallel_recreate_all.cpp](tsp/hip/parallel_recreate_all.cpp)
 ```
-hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./persistent 
+hermann@7600x:~/RR/tsp/hip$ HIP_VISIBLE_DEVICES=7 ./parallel_recreate_all 
 === Persistent GPU Kernel Parallel RecreateALL Benchmark ===
 Total Cities        : 100000
 Total Runs Requested: 25
-Cooperative Grid    : 300 blocks x 256 threads (60 CUs)
+Cooperative Grid    : 120 blocks x 512 threads (60 CUs)
 
 Executing 25 persistent GPU runs...
 Completed Run 10/25 | Latest Tour Length: 6184551
@@ -95,10 +95,10 @@ Minimum Tour Length (Best) : 6182812
 Mean Tour Length           : 6187246.72
 Maximum Tour Length (Worst): 6191093
 -----------------------------------------------
-Total GPU Runtime          : 20878.48 ms (20.88 s)
-Average Time per Tour Run  : 835.14 ms
-Throughput                 : 17.96 Gsqrt/s
-hermann@7600x:~/RR/tsp/hip$
+Total GPU Runtime          : 19566.21 ms (19.57 s)
+Average Time per Tour Run  : 782.65 ms
+Throughput                 : 19.17 Gsqrt/s
+hermann@7600x:~/RR/tsp/hip$ 
 ```
 
 ![tsp/res/mona-lisa100K.part.png](tsp/res/mona-lisa100K.part.png)
