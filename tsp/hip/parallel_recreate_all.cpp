@@ -33,7 +33,7 @@ __device__ inline double gpu_sqrt(double val) {
     return val * rsqrt(val);
 }
 
-__device__ inline double gpu_sqrt2(double2 p_coord, double2 u_coord) {
+__device__ inline double gpu_euc2d(double2 p_coord, double2 u_coord) {
     return  gpu_sqrt((p_coord.x - u_coord.x) * (p_coord.x - u_coord.x) +
                      (p_coord.y - u_coord.y) * (p_coord.y - u_coord.y));
 }
@@ -111,9 +111,9 @@ __global__ void persistent_recreate_all_kernel(
                 double2 p_coord = d_C[p];
                 double2 v_coord = d_C[v];
 
-                double d_pu = gpu_sqrt2(p_coord, u_coord);
-                double d_uv = gpu_sqrt2(u_coord, v_coord);
-                double d_pv = gpu_sqrt2(p_coord, v_coord);
+                double d_pu = gpu_euc2d(p_coord, u_coord);
+                double d_uv = gpu_euc2d(u_coord, v_coord);
+                double d_pv = gpu_euc2d(p_coord, v_coord);
 
                 int64_t extra_cost = static_cast<int64_t>(
                     static_cast<uint16_t>(0.5 + d_pu) +
@@ -192,7 +192,7 @@ __global__ void persistent_recreate_all_kernel(
         double2 p1 = d_C[u_city];
         double2 p2 = d_C[v_city];
 
-        uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt2(p1, p2));
+        uint16_t dist = static_cast<uint16_t>(0.5 + gpu_euc2d(p1, p2));
 #if defined(__HIP_PLATFORM_NVIDIA__)
         atomicAdd((unsigned long long*) d_tour_length,                // NOLINT
                   (unsigned long long) static_cast<uint64_t>(dist));  // NOLINT
