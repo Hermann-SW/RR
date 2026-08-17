@@ -34,12 +34,14 @@ __device__ inline double gpu_sqrt(double val) {
     return val * rsqrt(val);
 }
 
-// Single persistent kernel eliminating launch latency across loop iterations
+constexpr int BLOCK_SIZE = 256;
+
+// Optimized persistent kernel with LDS Tiling & Vectorized 128-Bit Loads
 __global__ void persistent_recreate_all_kernel(
     const uint32_t* __restrict__ d_city_order,
     uint32_t* __restrict__ d_tour_A,
     uint32_t* __restrict__ d_tour_B,
-    const double (* __restrict__ d_C)[2],
+    const double2* __restrict__ d_C, // Cast to double2 for 128-bit vector loads
     uint64_t* __restrict__ d_best,
     uint64_t* __restrict__ d_tour_length) {
 
@@ -47,7 +49,13 @@ __global__ void persistent_recreate_all_kernel(
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t stride = gridDim.x * blockDim.x;
 
-    // Phase 1: Initialize first 3 cities and initial atomic state
+    // LDS union to recycle 2 KB shared memory between tiling and block reduction
+    __shared__ union {
+        uint32_t s_curr_tour[BLOCK_SIZE + 1];
+        uint64_t s_min[BLOCK_SIZE];
+    } smem;
+
+    // Phase 1: Initialize first 3 cities
     if (idx == 0) {
         d_tour_A[0] = d_city_order[0];
         d_tour_A[1] = d_city_order[1];
@@ -61,55 +69,75 @@ __global__ void persistent_recreate_all_kernel(
     for (uint32_t k = 3; k < NUM_CITIES; ++k) {
         uint32_t u = d_city_order[k];
 
-        // Ping-pong between tour buffers without host intervention
         const uint32_t* d_curr = (k % 2 == 1) ? d_tour_A : d_tour_B;
         uint32_t* d_next = (k % 2 == 1) ? d_tour_B : d_tour_A;
 
-        double ux = d_C[u][0];
-        double uy = d_C[u][1];
+        // Fetch inserted city coordinates into VGPR registers (128-bit vector load)
+        double2 u_coord = d_C[u];
 
         uint64_t min_cost = ULLONG_MAX;
         uint32_t best_i = 0;
 
-        // Grid-stride search for the best insertion position
-        for (uint32_t i = idx; i < k; i += stride) {
-            uint32_t p = d_curr[i];
-            uint32_t v = (i + 1 == k) ? d_curr[0] : d_curr[i + 1];
+        // Grid-stride loop over LDS tiles
+        for (uint32_t tile_start = blockIdx.x * BLOCK_SIZE; tile_start < k; tile_start += stride) {
+            uint32_t global_i = tile_start + threadIdx.x;
 
-            double px = d_C[p][0];
-            double py = d_C[p][1];
-
-            double vx = d_C[v][0];
-            double vy = d_C[v][1];
-
-            double d_pu = gpu_sqrt((px - ux)*(px - ux) + (py - uy)*(py - uy));
-            double d_uv = gpu_sqrt((ux - vx)*(ux - vx) + (uy - vy)*(uy - vy));
-            double d_pv = gpu_sqrt((px - vx)*(px - vx) + (py - vy)*(py - vy));
-
-            int64_t extra_cost = static_cast<int64_t>(
-                static_cast<uint16_t>(0.5 + d_pu) +
-                static_cast<uint16_t>(0.5 + d_uv) -
-                static_cast<uint16_t>(0.5 + d_pv));
-
-            uint64_t biased_cost = static_cast<uint64_t>(extra_cost + 2000000000LL);
-
-            if (biased_cost < min_cost) {
-                min_cost = biased_cost;
-                best_i = i;
+            // 1. Coalesced load of tour indices into LDS
+            if (global_i < k) {
+                smem.s_curr_tour[threadIdx.x] = d_curr[global_i];
             }
+
+            // 2. Cache boundary element for tour continuity (i+1 wrap-around)
+            if (threadIdx.x == 0) {
+                if (tile_start + BLOCK_SIZE < k) {
+                    smem.s_curr_tour[BLOCK_SIZE] = d_curr[tile_start + BLOCK_SIZE];
+                } else if (tile_start < k) {
+                    smem.s_curr_tour[k - tile_start] = d_curr[0];
+                }
+            }
+            __syncthreads();
+
+            // 3. Compute cost using LDS cached indices & 128-bit vector coordinate loads
+            if (global_i < k) {
+                uint32_t p = smem.s_curr_tour[threadIdx.x];
+                uint32_t v = smem.s_curr_tour[threadIdx.x + 1];
+
+                double2 p_coord = d_C[p];
+                double2 v_coord = d_C[v];
+
+                double d_pu = gpu_sqrt((p_coord.x - u_coord.x) * (p_coord.x - u_coord.x) + 
+                                       (p_coord.y - u_coord.y) * (p_coord.y - u_coord.y));
+                double d_uv = gpu_sqrt((u_coord.x - v_coord.x) * (u_coord.x - v_coord.x) + 
+                                       (u_coord.y - v_coord.y) * (u_coord.y - v_coord.y));
+                double d_pv = gpu_sqrt((p_coord.x - v_coord.x) * (p_coord.x - v_coord.x) + 
+                                       (p_coord.y - v_coord.y) * (p_coord.y - v_coord.y));
+
+                int64_t extra_cost = static_cast<int64_t>(
+                    static_cast<uint16_t>(0.5 + d_pu) +
+                    static_cast<uint16_t>(0.5 + d_uv) -
+                    static_cast<uint16_t>(0.5 + d_pv));
+
+                uint64_t biased_cost = static_cast<uint64_t>(extra_cost + 2000000000LL);
+
+                if (biased_cost < min_cost) {
+                    min_cost = biased_cost;
+                    best_i = global_i;
+                }
+            }
+            __syncthreads();
         }
 
+        // Pack local min cost and index
         uint64_t val = (min_cost << 32) | static_cast<uint64_t>(best_i);
 
-        // Block-level shared memory reduction
-        __shared__ uint64_t s_min[256];
-        s_min[threadIdx.x] = val;
+        // Block-level reduction using recycled LDS
+        smem.s_min[threadIdx.x] = val;
         __syncthreads();
 
-        for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+        for (int s = BLOCK_SIZE / 2; s > 0; s >>= 1) {
             if (threadIdx.x < s) {
-                if (s_min[threadIdx.x + s] < s_min[threadIdx.x]) {
-                    s_min[threadIdx.x] = s_min[threadIdx.x + s];
+                if (smem.s_min[threadIdx.x + s] < smem.s_min[threadIdx.x]) {
+                    smem.s_min[threadIdx.x] = smem.s_min[threadIdx.x + s];
                 }
             }
             __syncthreads();
@@ -118,15 +146,15 @@ __global__ void persistent_recreate_all_kernel(
         // Global atomic reduction
         if (threadIdx.x == 0) {
 #if defined(__HIP_PLATFORM_NVIDIA__)
-            atomicMin((unsigned long long*) d_best, (unsigned long long) s_min[0]);
+            atomicMin((unsigned long long*) d_best, (unsigned long long) smem.s_min[0]);
 #else
-            atomicMin(d_best, s_min[0]);
+            atomicMin(d_best, smem.s_min[0]);
 #endif
         }
 
         grid.sync();
 
-        // Insertion step into double buffer
+        // Double-buffered tour insertion
         uint64_t best_val = *d_best;
         uint32_t best_index = static_cast<uint32_t>(best_val & 0xFFFFFFFFULL);
 
@@ -142,7 +170,6 @@ __global__ void persistent_recreate_all_kernel(
 
         grid.sync();
 
-        // Reset atomic tracker for next loop iteration
         if (idx == 0) {
             *d_best = ULLONG_MAX;
         }
@@ -150,20 +177,18 @@ __global__ void persistent_recreate_all_kernel(
         grid.sync();
     }
 
-    // Phase 3: Final tour length calculation
+    // Phase 3: Compute final tour length
     const uint32_t* d_final_tour = ((NUM_CITIES - 1) % 2 == 1) ? d_tour_B : d_tour_A;
 
     for (uint32_t i = idx; i < NUM_CITIES; i += stride) {
         uint32_t u_city = d_final_tour[i];
         uint32_t v_city = (i + 1 == NUM_CITIES) ? d_final_tour[0] : d_final_tour[i + 1];
 
-        double x1 = d_C[u_city][0];
-        double y1 = d_C[u_city][1];
-        double x2 = d_C[v_city][0];
-        double y2 = d_C[v_city][1];
+        double2 p1 = d_C[u_city];
+        double2 p2 = d_C[v_city];
 
-        double xd = x1 - x2;
-        double yd = y1 - y2;
+        double xd = p1.x - p2.x;
+        double yd = p1.y - p2.y;
 
         uint16_t dist = static_cast<uint16_t>(0.5 + gpu_sqrt(xd * xd + yd * yd));
 #if defined(__HIP_PLATFORM_NVIDIA__)
@@ -256,7 +281,7 @@ int main() {
             (void*)&d_city_order,
             (void*)&d_tour_A,
             (void*)&d_tour_B,
-            (void*)&d_C,
+            (void*)&d_C, // Interpreted as const double2* inside kernel
             (void*)&d_best,
             (void*)&d_tour_length
         };
