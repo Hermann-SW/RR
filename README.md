@@ -101,4 +101,57 @@ Throughput                 : 19.17 Gsqrt/s
 hermann@7600x:~/RR/tsp/hip$ 
 ```
 
+Above code that took 300s for RR_all() on Xeon processor, took 46s on AMD 7950X CPU. That code did access distances from huge 100,000×100,000 distance matrix in RAM. GPU code never did that because computing sqrt() each time again was much faster,
+since everything did fit into GPU L2 cache and no VRAM access was needed.
+
+I asked gemini to transpile above CPU code back to OpenMP+AVX512 optimized code for AMD [79]950X CPUs. Runtime dropped significantly from 46s per RR_all() to just under 2s(!) for AMD 7950X CPU:  
+[tsp/openmp/parallel_recreate_all_cpu.cpp](tsp/openmp/parallel_recreate_all_cpu.cpp)
+```
+hermann@7950x:~/RR/tsp/openmp$ f=parallel_recreate_all_cpu
+g++-14 -O3 -march=znver5 -fopenmp -Wall -Wextra -pedantic $f.cpp -o $f
+hermann@7950x:~/RR/tsp/openmp$ ./$f
+== AMD Zen 5 (AVX-512 + OpenMP) CPU RecreateALL Benchmark ==
+Total Cities        : 100000
+Total Runs Requested: 25
+OpenMP Threads      : 32
+Completed Run 10/25 | Latest Tour Length: 6189775
+Completed Run 20/25 | Latest Tour Length: 6189168
+Completed Run 25/25 | Latest Tour Length: 6186778
+
+================== RESULTS ==================
+Total Runs Executed        : 25
+Minimum Tour Length (Best) : 6182433
+Mean Tour Length           : 6186513.60
+Maximum Tour Length (Worst): 6190034
+-----------------------------------------------
+Total CPU Runtime          : 48331.51 ms (48.33 s)
+Average Time per Tour Run  : 1933.26 ms
+hermann@7950x:~/RR/tsp/openmp$ 
+```
+
+And a bit further down to 1674.08 ms for 16C/32T AMD 9950X CPU (2.14× slower than Radeon Pro VII and Instinct MI50 GPU):
+```
+hermann@9950x:~/RR/tsp/openmp$ f=parallel_recreate_all_cpu
+hermann@9950x:~/RR/tsp/openmp$ g++-14 -O3 -march=znver5 -fopenmp -Wall -Wextra -pedantic $f.cpp -o $f
+hermann@9950x:~/RR/tsp/openmp$ ./$f
+== AMD Zen 5 (AVX-512 + OpenMP) CPU RecreateALL Benchmark ==
+Total Cities        : 100000
+Total Runs Requested: 25
+OpenMP Threads      : 32
+Completed Run 20/25 | Latest Tour Length: 6183452
+Completed Run 10/25 | Latest Tour Length: 6183274
+Completed Run 25/25 | Latest Tour Length: 6189383
+
+================== RESULTS ==================
+Total Runs Executed        : 25
+Minimum Tour Length (Best) : 6182433
+Mean Tour Length           : 6186200.44
+Maximum Tour Length (Worst): 6190034
+-----------------------------------------------
+Total CPU Runtime          : 41852.01 ms (41.85 s)
+Average Time per Tour Run  : 1674.08 ms
+hermann@9950x:~/RR/tsp/openmp$ 
+```  
+  
+  
 ![tsp/res/mona-lisa100K.part.png](tsp/res/mona-lisa100K.part.png)
